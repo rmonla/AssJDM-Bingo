@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Interactivo - Pantalla Pública v7.1</title>
+    <link rel="stylesheet" href="bingo-styles.css">
+</head>
+<body>
+    <div id="display-screen">
+        <header class="display-header">
+            <div class="event-info">
+                <img id="displayLogo" src="#" alt="Logo del Evento" style="display: none;">
+                <div>
+                    <h1 id="displayEventName">Bingo</h1>
+                    <p id="displayEventDescription">¡Mucha suerte!</p>
+                </div>
+            </div>
+            <div class="active-prizes">
+                <h3>Premios en Juego:</h3>
+                <ul id="displayActivePrizes">
+                    <!-- Premios se llenan con JS -->
+                </ul>
+            </div>
+        </header>
+
+        <main class="display-main">
+            <div class="display-current-number-container">
+                <div class="display-current-number" id="displayCurrentNumber">--</div>
+            </div>
+            
+            <div class="display-number-board-container">
+                <h2>Tablero de Números (00-90)</h2>
+                <div class="number-board" id="displayNumberBoard">
+                    <!-- Los números se generarán con JS -->
+                </div>
+            </div>
+            
+            <aside class="display-history">
+                <h3>Últimos Sorteados:</h3>
+                <ul id="displayHistoryList">
+                    <!-- Historial se llenará con JS -->
+                </ul>
+            </aside>
+        </main>
+
+        <!-- Overlay de Verificación -->
+        <div id="verificationOverlay" class="overlay" style="display: none;">
+            <div class="overlay-content">
+                <h2>VERIFICANDO...</h2>
+                <p id="verifyingPrizeText">Se está verificando un cartón para [PREMIO]</p>
+            </div>
+        </div>
+
+        <!-- Overlay de Ganador -->
+        <div id="winnerOverlay" class="overlay" style="display: none;">
+            <div class="overlay-content winner-content">
+                <h2 id="winnerPrizeName">¡[PREMIO] GANADO!</h2>
+                <p id="winnerPrizeDescription"></p>
+                <img id="winnerPrizeImage" src="#" alt="Imagen del Premio" style="display:none; max-height: 200px; margin-top: 20px;">
+            </div>
+        </div>
+        <canvas id="confettiCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1001; pointer-events: none;"></canvas>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="bingo-core.js"></script>
+</body>
+</html>

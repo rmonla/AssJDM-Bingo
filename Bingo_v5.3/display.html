@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantalla del Bingo Pro</title>
+    <link rel="stylesheet" href="css/display-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="event-info">
+                <img id="eventLogoDisplay" src="" alt="Logo del Evento" style="display:none;">
+                <div class="event-text">
+                    <h1 id="eventNameDisplay">Nombre del Bingo</h1>
+                    <p id="eventDescriptionDisplay">Descripción del evento aquí.</p>
+                </div>
+            </div>
+            <div class="game-status-display">
+                <div id="currentPlayDisplay">Jugando por: ...</div>
+            </div>
+        </header>
+
+        <main class="game-display-area">
+            <section class="info-column">
+                <div class="ball-display-container-display">
+                    <h2>Bolilla Actual</h2>
+                    <div id="currentBallDisplay">--</div>
+                </div>
+                <div id="drawnBallsListDisplay">
+                    <h3>Historial de Bolillas</h3>
+                    <div id="drawnBallsHistoryDisplay">
+                        <!-- Bolillas sacadas -->
+                    </div>
+                </div>
+            </section>
+            <section class="master-board-column-display">
+                <h2>Tablero Maestro (0-99)</h2>
+                <div id="masterBoardDisplay">
+                    <!-- Celdas del tablero maestro -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="overlayMessageContainer" class="overlay-message-container">
+        <div id="mainDisplayMessage"></div> <!-- Para mensajes como "Verificando..." -->
+        <div id="winnerAnnouncementBox" class="winner-announcement-box" style="display:none;">
+            <h2 id="announcedPrizeName"></h2>
+            <p id="announcedPrizeDescription" class="prize-desc"></p>
+            <span class="winner-name-label">¡GANADOR!</span>
+            <span id="announcedWinnerName" class="winner-name-value"></span>
+            <div class="winner-images">
+                <img id="announcedPrizeImage" src="#" alt="Imagen del Premio" style="display:none;">
+                <img id="announcedWinnerPhoto" src="#" alt="Foto del Ganador" style="display:none;">
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/display-logic.js"></script>
+</body>
+</html>

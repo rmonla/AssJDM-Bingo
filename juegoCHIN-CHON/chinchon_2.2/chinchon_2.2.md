@@ -1,0 +1,1318 @@
+¡De acuerdo! Vamos a realizar esas mejoras.
+
+**Cambios Principales:**
+
+1.  **Tablero de Puntuación:** Se moverá a la esquina superior derecha y se hará más compacto.
+2.  **Cartas de Póker:** Cambiaremos la baraja española por una de póker estándar de 52 cartas (As, 2-10, J, Q, K en 4 palos: Corazones, Diamantes, Tréboles, Picas). El As valdrá 1 punto y será el valor numérico más bajo (1) para escaleras (A-2-3). J, Q, K valdrán 10 puntos.
+3.  **Ordenar Cartas en la Mano:** Implementaremos la funcionalidad de arrastrar y soltar (Drag and Drop) para que puedas organizar las cartas en tu mano.
+
+Aquí tienes el código HTML, CSS y JavaScript actualizado en un solo archivo:
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chin Chón - Poker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #006400; /* Verde oscuro mesa de juego */
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+            position: relative; /* Para el scoreboard absoluto/fijo */
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .hand-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 130px; /* Un poco más alto para el drag-over */
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cpu-hand .card {
+            background-color: #4169E1; /* Dorso azul poker */
+            color: #4169E1;
+            border: 1px solid #304D80;
+        }
+        .cpu-hand .card::before {
+            content: "♤♧"; /* Símbolo dorso poker */
+            color: #fff;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            opacity: 0.7;
+        }
+        .cpu-hand .card .value, .cpu-hand .card .suit {
+            display: none;
+        }
+
+        .card {
+            width: 70px; /* Un poco más anchas para poker */
+            height: 100px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            cursor: grab; /* Para indicar que es arrastrable */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            position: relative;
+            font-size: 12px;
+            color: #333;
+            box-sizing: border-box;
+        }
+        .card.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .card.drag-over-placeholder {
+            border: 2px dashed #ffd700;
+            transform: translateY(-5px);
+        }
+
+
+        .card.selected {
+            transform: translateY(-10px);
+            box-shadow: 3px 13px 8px rgba(0,0,0,0.5);
+        }
+        .card.disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .card .value {
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .card .suit {
+            font-size: 24px;
+            line-height: 1;
+        }
+        /* Colores para palos de Poker */
+        .suit-Corazones, .suit-Diamantes { color: #FF0000; } /* Rojo */
+        .suit-Treboles, .suit-Picas { color: #000000; } /* Negro */
+
+
+        .deck-pozo-area {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .deck-pile, .discard-pile {
+            width: 80px;
+            height: 110px;
+            border: 2px dashed #fff;
+            border-radius: 8px;
+            margin: 0 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            position: relative;
+        }
+        .deck-pile .card-count{
+            position: absolute;
+            bottom: -20px;
+            font-size: 12px;
+        }
+
+        .deck-pile {
+            background-color: #4169E1; /* Dorso azul */
+            cursor: pointer;
+        }
+        .discard-pile .card {
+            margin: 0;
+        }
+
+
+        .actions, .game-messages {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        button {
+            background-color: #FFD700; /* Dorado */
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #F0C000;
+        }
+        button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+
+        .scoreboard {
+            position: fixed; /* O absolute si body no es el único contenedor */
+            top: 10px;
+            right: 10px;
+            width: 180px; /* Más pequeño */
+            background-color: rgba(0,0,0,0.3); /* Un poco más oscuro */
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+            z-index: 100; /* Encima de otros elementos */
+        }
+        .scoreboard h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1em; /* Más pequeño */
+        }
+        .scoreboard p {
+            margin: 4px 0;
+            font-size: 0.85em; /* Más pequeño */
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #2c3e50;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .modal-content h3 { margin-top: 0; }
+        .modal-close-button { margin-top: 20px; }
+
+        .round-summary-cards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .round-summary-cards .card {
+            font-size: 8px;
+            width: 50px; /* Ajustar para poker */
+            height: 70px;
+        }
+        .melded { border: 2px solid limegreen !important; }
+        .unmelded { border: 2px solid crimson !important; }
+
+        .card-moving {
+            position: fixed;
+            z-index: 999;
+            transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="scoreboard"> <!-- Movido fuera del game-container para posicionamiento fixed/absolute global -->
+        <h2>Puntuación</h2>
+        <p>Jugador: <span id="player-score">0</span></p>
+        <p>CPU: <span id="cpu-score">0</span></p>
+        <p>Ronda: <span id="round-number">1</span></p>
+    </div>
+
+    <div class="game-container">
+        <h1>Chin Chón <small>(Poker)</small></h1>
+
+        <div id="cpu-area">
+            <h3>Mano CPU (<span id="cpu-card-count">0</span> cartas)</h3>
+            <div class="hand-area cpu-hand" id="cpu-hand"></div>
+        </div>
+
+        <div class="deck-pozo-area">
+            <div class="deck-pile" id="deck-pile" title="Robar del Mazo">
+                MAZO
+                <div class="card-count" id="deck-count">0</div>
+            </div>
+            <div class="discard-pile" id="discard-pile" title="Robar del Pozo"></div>
+        </div>
+         <div class="game-messages" id="game-message">Turno del Jugador. Elige una acción.</div>
+
+        <div id="player-area">
+            <h3>Tu Mano (Arrastra para ordenar)</h3>
+            <div class="hand-area player-hand" id="player-hand"></div>
+        </div>
+
+        <div class="actions">
+            <button id="btn-draw-deck" onclick="playerDrawFromDeck()">Robar del Mazo</button>
+            <button id="btn-draw-discard" onclick="playerDrawFromDiscard()">Robar del Pozo</button>
+            <button id="btn-discard" onclick="playerConfirmDiscard()" disabled>Descartar Seleccionada</button>
+            <button id="btn-close-round" onclick="playerAttemptClose()" disabled>Cerrar Ronda</button>
+            <button id="btn-next-round" style="display:none;" onclick="startNewRound()">Siguiente Ronda</button>
+            <button id="btn-new-game" style="display:none;" onclick="initGame()">Nuevo Juego</button>
+        </div>
+    </div>
+
+    <div id="round-summary-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="round-summary-title">Fin de la Ronda</h3>
+            <div id="round-summary-jugador">
+                <h4>Jugador:</h4>
+                <p>Puntos esta ronda: <span id="summary-player-points-round">0</span></p>
+                <p>Combinaciones:</p>
+                <div id="summary-player-melds" class="round-summary-cards"></div>
+                <p>Cartas sueltas:</p>
+                <div id="summary-player-unmelded" class="round-summary-cards"></div>
+            </div>
+            <hr>
+            <div id="round-summary-cpu">
+                <h4>CPU:</h4>
+                <p>Puntos esta ronda: <span id="summary-cpu-points-round">0</span></p>
+                 <p>Combinaciones:</p>
+                <div id="summary-cpu-melds" class="round-summary-cards"></div>
+                <p>Cartas sueltas:</p>
+                <div id="summary-cpu-unmelded" class="round-summary-cards"></div>
+            </div>
+            <p id="round-winner-message"></p>
+            <button id="modal-close-button" class="modal-close-button" onclick="closeModal()">Continuar</button>
+        </div>
+    </div>
+
+
+<script>
+    // --- CONSTANTES PARA CARTAS DE POKER ---
+    const PALOS_POKER = ["Corazones", "Diamantes", "Treboles", "Picas"];
+    const VALORES_DISPLAY_POKER = { 1: "A", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "10", 11: "J", 12: "Q", 13: "K" };
+    const VALORES_NUMERICOS_POKER = { "A": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 11, "Q": 12, "K": 13 };
+    const PUNTOS_CARTAS_POKER = { "A": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10 };
+
+    // Reglas del juego (se mantienen)
+    const LIMITE_PUNTOS_PARTIDA = -100;
+    const PUNTOS_CHINCHON = -25;
+    const PUNTOS_CERRAR_CON_CERO = -10;
+    const MAX_PUNTOS_PARA_CERRAR = 5; // Podría ajustarse para póker, pero 5 es común
+    const PENALIZACION_CORTE_FALLIDO = 25;
+
+    let mazo = [];
+    let pozo = [];
+    let manoJugador = [];
+    let manoCPU = [];
+    let puntuacionJugador = 0;
+    let puntuacionCPU = 0;
+    let rondaActual = 1;
+    let turnoJugador = true;
+    let jugadorHaRobado = false;
+    let cartaSeleccionadaParaDescartar = null;
+    let juegoTerminado = false;
+
+    // Elementos del DOM
+    const playerHandElement = document.getElementById('player-hand');
+    const cpuHandElement = document.getElementById('cpu-hand');
+    const deckPileElement = document.getElementById('deck-pile');
+    const discardPileElement = document.getElementById('discard-pile');
+    const gameMessageElement = document.getElementById('game-message');
+    const playerScoreElement = document.getElementById('player-score');
+    const cpuScoreElement = document.getElementById('cpu-score');
+    const roundNumberElement = document.getElementById('round-number');
+    const deckCountElement = document.getElementById('deck-count');
+    const cpuCardCountElement = document.getElementById('cpu-card-count');
+
+    const btnDrawDeck = document.getElementById('btn-draw-deck');
+    const btnDrawDiscard = document.getElementById('btn-draw-discard');
+    const btnDiscard = document.getElementById('btn-discard');
+    const btnCloseRound = document.getElementById('btn-close-round');
+    const btnNextRound = document.getElementById('btn-next-round');
+    const btnNewGame = document.getElementById('btn-new-game');
+    const roundSummaryModal = document.getElementById('round-summary-modal');
+
+    // --- Variables para Drag and Drop ---
+    let draggedItem = null;
+    let placeholder = null; // Para mostrar dónde se soltaría la carta
+
+
+    class Carta {
+        constructor(valorNum, palo) {
+            this.valorNum = valorNum; // 1 (As) a 13 (K)
+            this.palo = palo;
+            this.nombreValor = VALORES_DISPLAY_POKER[valorNum];
+            this.puntos = PUNTOS_CARTAS_POKER[this.nombreValor];
+            this.id = `${this.nombreValor}-${this.palo}-${Math.random().toString(16).slice(2)}`;
+        }
+
+        toString() {
+            return `${this.nombreValor} de ${this.palo}`;
+        }
+
+        getHTML() {
+            const cardDiv = document.createElement('div');
+            cardDiv.classList.add('card', `suit-${this.palo}`);
+            cardDiv.dataset.id = this.id; // Importante para drag & drop y selección
+            cardDiv.dataset.valorNum = this.valorNum; // Útil para algunas lógicas
+            cardDiv.dataset.palo = this.palo;
+
+            const valorDisplay = this.nombreValor === "10" ? "10" : this.nombreValor.substring(0,1);
+
+            cardDiv.innerHTML = `
+                <span class="value">${valorDisplay}</span>
+                <span class="suit">${getSuitSymbolPoker(this.palo)}</span>
+                <span class="value">${valorDisplay}</span>
+            `;
+            // El onclick para seleccionar/descartar se añade en renderizarMano
+            return cardDiv;
+        }
+    }
+
+    function getSuitSymbolPoker(palo) {
+        if (palo === "Corazones") return '♥';
+        if (palo === "Diamantes") return '♦';
+        if (palo === "Treboles") return '♣';
+        if (palo === "Picas") return '♠';
+        return '?';
+    }
+
+    function crearBaraja() {
+        mazo = [];
+        for (const palo of PALOS_POKER) {
+            for (const valorNum of Object.values(VALORES_NUMERICOS_POKER)) { // Usamos el objeto para obtener 1..13
+                 mazo.push(new Carta(valorNum, palo));
+            }
+        }
+        // Barajar
+        for (let i = mazo.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [mazo[i], mazo[j]] = [mazo[j], mazo[i]];
+        }
+    }
+
+    function repartirCartas() {
+        manoJugador = [];
+        manoCPU = [];
+        pozo = [];
+
+        for (let i = 0; i < 7; i++) { // Se mantienen 7 cartas
+            if (mazo.length > 0) manoJugador.push(mazo.pop());
+            if (mazo.length > 0) manoCPU.push(mazo.pop());
+        }
+        if (mazo.length > 0) {
+            pozo.push(mazo.pop());
+        } else {
+            console.error("Mazo vacío al intentar poner carta en el pozo inicial.");
+        }
+    }
+
+    function renderizarMano(mano, element, esCPU = false) {
+        element.innerHTML = ''; // Limpiar mano anterior
+        mano.forEach(carta => {
+            const cardElement = carta.getHTML();
+            if (esCPU) {
+                cardElement.onclick = null;
+                cardElement.draggable = false; // CPU cards no son arrastrables
+            } else { // Mano del jugador
+                cardElement.draggable = true;
+                cardElement.addEventListener('dragstart', handleDragStart);
+                cardElement.addEventListener('dragend', handleDragEnd);
+
+                // Solo permitir seleccionar para descarte si ha robado
+                if (jugadorHaRobado && turnoJugador) {
+                    cardElement.onclick = () => seleccionarCartaParaDescartarDOM(carta, cardElement);
+                } else {
+                    cardElement.onclick = null; // No se puede seleccionar si no ha robado
+                    if (cartaSeleccionadaParaDescartar && cartaSeleccionadaParaDescartar.id === carta.id) {
+                        cardElement.classList.add('selected'); // Mantener visualmente seleccionada
+                    }
+                }
+            }
+            element.appendChild(cardElement);
+        });
+        if (esCPU) {
+            cpuCardCountElement.textContent = mano.length;
+        }
+    }
+
+    // --- Funciones de Drag and Drop para ordenar mano del jugador ---
+    function handleDragStart(e) {
+        draggedItem = e.target; // El elemento .card que se está arrastrando
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', draggedItem.innerHTML); // O solo el ID
+        e.target.classList.add('dragging'); // Estilo para la carta arrastrada
+        
+        // Crear un placeholder visual si no existe
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.classList.add('card', 'drag-over-placeholder');
+            placeholder.style.width = draggedItem.offsetWidth + 'px';
+            placeholder.style.height = draggedItem.offsetHeight + 'px';
+            placeholder.style.margin = getComputedStyle(draggedItem).margin;
+            placeholder.style.border = '2px dashed #ffd700'; // Estilo del placeholder
+            placeholder.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        }
+    }
+
+    function handleDragEnd(e) {
+        e.target.classList.remove('dragging');
+        if (placeholder && placeholder.parentNode) {
+            placeholder.parentNode.removeChild(placeholder);
+        }
+        draggedItem = null;
+        // No es necesario actualizarUI() aquí, se hace en handleDrop
+    }
+    
+    playerHandElement.addEventListener('dragover', handleDragOverContainer);
+    playerHandElement.addEventListener('dragenter', handleDragEnterContainer);
+    playerHandElement.addEventListener('dragleave', handleDragLeaveContainer);
+    playerHandElement.addEventListener('drop', handleDropOnContainer);
+
+    function handleDragOverContainer(e) {
+        e.preventDefault(); // Necesario para permitir el drop
+        e.dataTransfer.dropEffect = 'move';
+
+        if (draggedItem) { // Solo si hay algo siendo arrastrado
+            const afterElement = getDragAfterElement(playerHandElement, e.clientX);
+            if (afterElement == null) { // Si se suelta al final
+                if (!placeholder.parentNode || placeholder.nextSibling != null) { // Evitar añadir múltiples veces
+                    playerHandElement.appendChild(placeholder);
+                }
+            } else { // Si se suelta entre cartas
+                 if (!placeholder.parentNode || placeholder.nextSibling != afterElement) {
+                    playerHandElement.insertBefore(placeholder, afterElement);
+                 }
+            }
+        }
+    }
+
+    function handleDragEnterContainer(e) {
+        // Podría usarse para un feedback general en el contenedor
+    }
+    function handleDragLeaveContainer(e) {
+        // Si el mouse sale del contenedor playerHandElement y no está sobre una carta
+        // y el placeholder está en el playerHandElement, quitarlo.
+        // Esto es un poco más complejo para evitar parpadeos.
+        // Por ahora, el dragover y drop lo manejan bien.
+    }
+
+    function handleDropOnContainer(e) {
+        e.preventDefault();
+        if (!draggedItem) return;
+
+        const draggedCardId = draggedItem.dataset.id;
+        const draggedCardIndex = manoJugador.findIndex(c => c.id === draggedCardId);
+        if (draggedCardIndex === -1) return; // Carta no encontrada
+
+        const [movedCard] = manoJugador.splice(draggedCardIndex, 1); // Quitar la carta de su posición original
+
+        // Determinar la nueva posición
+        let newIndex = -1;
+        const children = Array.from(playerHandElement.children).filter(child => child !== draggedItem && child !== placeholder);
+        
+        // Encontrar la posición del placeholder o dónde se soltó
+        let placeholderIndex = -1;
+        if (placeholder && placeholder.parentNode === playerHandElement) {
+            placeholderIndex = Array.from(playerHandElement.children).indexOf(placeholder);
+        }
+        
+        if (placeholderIndex !== -1) {
+            newIndex = placeholderIndex;
+        } else { // Fallback si el placeholder no está bien posicionado (ej. soltar rápido al final)
+            const afterElement = getDragAfterElement(playerHandElement, e.clientX);
+            if (afterElement === null) {
+                newIndex = manoJugador.length; // Se añade al final (ya que fue quitada)
+            } else {
+                const targetCardId = afterElement.dataset.id;
+                newIndex = manoJugador.findIndex(c => c.id === targetCardId);
+            }
+        }
+        
+        if (newIndex === -1) newIndex = manoJugador.length; // Seguridad
+
+
+        manoJugador.splice(newIndex, 0, movedCard); // Insertar en la nueva posición
+
+        if (placeholder && placeholder.parentNode) {
+            placeholder.parentNode.removeChild(placeholder);
+        }
+        draggedItem.classList.remove('dragging');
+        draggedItem = null;
+        actualizarUI(); // Re-renderizar la mano con el nuevo orden
+    }
+
+
+    function getDragAfterElement(container, x) {
+        const draggableElements = [...container.querySelectorAll('.card:not(.dragging):not(.drag-over-placeholder)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = x - box.left - box.width / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+
+    // --- Resto de Funciones (adaptadas o iguales) ---
+    function renderizarPozo() {
+        discardPileElement.innerHTML = '';
+        if (pozo.length > 0) {
+            const topCard = pozo[pozo.length - 1];
+            const cardElement = topCard.getHTML();
+            cardElement.onclick = null;
+            cardElement.draggable = false; // Carta del pozo no es arrastrable
+            discardPileElement.appendChild(cardElement);
+        } else {
+            discardPileElement.textContent = "Vacío";
+        }
+    }
+
+    function renderizarMazo() {
+        deckCountElement.textContent = mazo.length;
+        deckPileElement.style.display = mazo.length > 0 ? 'flex' : 'none';
+    }
+
+    function actualizarUI() {
+        renderizarMano(manoJugador, playerHandElement);
+        renderizarMano(manoCPU, cpuHandElement, true);
+        renderizarPozo();
+        renderizarMazo();
+        playerScoreElement.textContent = puntuacionJugador;
+        cpuScoreElement.textContent = puntuacionCPU;
+        roundNumberElement.textContent = rondaActual;
+
+        btnDrawDeck.disabled = !turnoJugador || jugadorHaRobado || mazo.length === 0 || juegoTerminado;
+        btnDrawDiscard.disabled = !turnoJugador || jugadorHaRobado || pozo.length === 0 || juegoTerminado;
+        btnDiscard.disabled = !turnoJugador || !jugadorHaRobado || !cartaSeleccionadaParaDescartar || juegoTerminado;
+
+        const { puntosSueltos } = evaluarManoCompleto(manoJugador);
+        btnCloseRound.disabled = !turnoJugador || !jugadorHaRobado || puntosSueltos > MAX_PUNTOS_PARA_CERRAR || juegoTerminado;
+        if (esChinChon(manoJugador)) btnCloseRound.disabled = !turnoJugador || !jugadorHaRobado || juegoTerminado; // Habilitar si es ChinChon (pero debe haber robado y es su turno)
+
+    }
+
+    function seleccionarCartaParaDescartarDOM(carta, cardElement) {
+        if (!jugadorHaRobado || !turnoJugador) return;
+
+        if (cartaSeleccionadaParaDescartar && cartaSeleccionadaParaDescartar.id === carta.id) {
+            // Deseleccionar si se clickea la misma carta
+            cartaSeleccionadaParaDescartar = null;
+            cardElement.classList.remove('selected');
+            btnDiscard.disabled = true;
+        } else {
+            // Deseleccionar previa si existe
+            if (cartaSeleccionadaParaDescartar) {
+                const prevSelectedDOM = playerHandElement.querySelector(`.card[data-id="${cartaSeleccionadaParaDescartar.id}"]`);
+                if (prevSelectedDOM) prevSelectedDOM.classList.remove('selected');
+            }
+            // Seleccionar nueva
+            cartaSeleccionadaParaDescartar = carta;
+            cardElement.classList.add('selected');
+            btnDiscard.disabled = false;
+        }
+    }
+
+    function playerDrawFromDeck() {
+        if (!turnoJugador || jugadorHaRobado || mazo.length === 0) return;
+        const cartaRobada = mazo.pop();
+        // animateCardMove(deckPileElement, playerHandElement, cartaRobada, () => { // Animación puede interferir con selección
+            manoJugador.push(cartaRobada);
+            jugadorHaRobado = true;
+            gameMessageElement.textContent = "Has robado del mazo. Selecciona una carta para descartar o cierra la ronda.";
+            actualizarUI();
+        // });
+    }
+
+    function playerDrawFromDiscard() {
+        if (!turnoJugador || jugadorHaRobado || pozo.length === 0) return;
+        const cartaRobada = pozo.pop();
+        // animateCardMove(discardPileElement.firstChild, playerHandElement, cartaRobada, () => {
+            manoJugador.push(cartaRobada);
+            jugadorHaRobado = true;
+            gameMessageElement.textContent = "Has robado del pozo. Selecciona una carta para descartar o cierra la ronda.";
+            actualizarUI();
+        // });
+    }
+
+    function playerConfirmDiscard() {
+        if (!cartaSeleccionadaParaDescartar || !jugadorHaRobado) return;
+
+        const index = manoJugador.findIndex(c => c.id === cartaSeleccionadaParaDescartar.id);
+        if (index > -1) {
+            const [cartaDescartada] = manoJugador.splice(index, 1);
+            // animateCardMove(playerHandElement.querySelector(`.card[data-id="${cartaDescartada.id}"]`), discardPileElement, cartaDescartada, () => {
+                pozo.push(cartaDescartada);
+                const { puntosSueltos: puntosJugadorPostDescarte, esChinchon } = evaluarManoCompleto(manoJugador);
+                let mensaje = `Has descartado ${cartaDescartada}. `;
+
+                if (esChinchon) {
+                    mensaje += "¡Tienes ChinChón! Puedes cerrar la ronda.";
+                } else if (puntosJugadorPostDescarte <= MAX_PUNTOS_PARA_CERRAR) {
+                    mensaje += `Puedes cerrar con ${puntosJugadorPostDescarte} puntos.`;
+                } else {
+                    mensaje += "Turno de la CPU.";
+                }
+                gameMessageElement.textContent = mensaje;
+                
+                const puedeCerrarAhora = esChinchon || puntosJugadorPostDescarte <= MAX_PUNTOS_PARA_CERRAR;
+                
+                // Resetear selección y estado de robo
+                cartaSeleccionadaParaDescartar = null;
+                jugadorHaRobado = false; // Ya descartó, ahora es fase de cerrar o pasar turno
+
+                actualizarUI(); // Actualizar para quitar carta, añadir al pozo y estado de botones
+                
+                if (puedeCerrarAhora) {
+                    if (confirm("¿Quieres cerrar la ronda ahora?")) {
+                        playerAttemptCloseAfterDiscard(); // Nueva función para cerrar post-descarte
+                    } else {
+                        cambiarTurno();
+                    }
+                } else {
+                    cambiarTurno();
+                }
+            // });
+        }
+    }
+    
+    function playerAttemptCloseAfterDiscard() { // Llamada después de que el jugador ya descartó
+        const { esChinchon, puntosSueltos } = evaluarManoCompleto(manoJugador);
+        if (esChinchon) {
+            gameMessageElement.textContent = "¡CHINCHÓN! Has cerrado la ronda.";
+            finalizarRonda("Jugador", true);
+        } else if (puntosSueltos <= MAX_PUNTOS_PARA_CERRAR) {
+            gameMessageElement.textContent = `Has cerrado la ronda con ${puntosSueltos} puntos.`;
+            finalizarRonda("Jugador", false);
+        } else {
+            // Esto no debería pasar si se llama correctamente
+            alert("Error: No puedes cerrar con los puntos actuales.");
+            cambiarTurno(); // Pasa el turno si hay error
+        }
+    }
+
+
+    function playerAttemptClose() { // Botón "Cerrar Ronda"
+        // Esta función se llama cuando el jugador *aún no ha descartado la 8va carta*
+        // (tiene 7 cartas y cree que puede cerrar con ellas)
+        // El flujo normal es: robar (mano a 8) -> descartar (mano a 7) -> (opción de cerrar)
+        // Este botón es para el caso donde *ya tiene 7 cartas*, ha descartado en un turno previo
+        // y ahora, *sin robar aún en este turno*, quiere cerrar. Esto no es típico en ChinChon.
+        // La lógica actual asume que el cierre ocurre DESPUÉS de descartar.
+        // Para simplificar, el botón "Cerrar Ronda" debe usarse *después* de descartar.
+        // Modifico la lógica para que `playerAttemptClose` sea lo que se llama tras confirmar descarte.
+        // El botón "Cerrar Ronda" debería estar deshabilitado hasta después del descarte.
+        // La UI se maneja para que el flujo sea: robar -> seleccionar descarte -> descartar Y decidir cerrar.
+        
+        // La lógica actual de btnCloseRound.disabled en actualizarUI es:
+        // `!turnoJugador || !jugadorHaRobado || puntosSueltos > MAX_PUNTOS_PARA_CERRAR`
+        // Esto implica que se ha robado (y por ende se tiene 8 cartas).
+        // El cierre real es con 7 cartas.
+        // Vamos a asumir que el botón "Cerrar Ronda" es para cuando ya tiene 7 cartas y son válidas.
+        // Esto es un poco confuso en el flujo. Simplificaré: el cierre es una decisión *después* de descartar.
+        // El botón "Cerrar Ronda" se activará solo si, tras descartar, se cumplen condiciones.
+
+        // Si el botón se presiona, significa que el jugador cree que con sus 7 cartas actuales puede cerrar.
+        // Esto sucedería al *final* de su turno, después de descartar.
+        // La lógica de `playerConfirmDiscard` ahora maneja la opción de cerrar.
+        // El botón "Cerrar Ronda" se puede eliminar o su lógica integrarse mejor.
+        // Por ahora, si se presiona "Cerrar Ronda" (habilitado por actualizarUI), se intenta cerrar.
+        
+        if (!turnoJugador || !jugadorHaRobado) {
+            alert("Debes robar y descartar una carta antes de poder cerrar la ronda.");
+            return;
+        }
+        // Si llega aquí, el jugador ha robado (tiene 8 cartas) y aún no ha descartado.
+        // Esto es incorrecto para cerrar. El cierre es con 7 cartas.
+        // Por lo tanto, el botón "Cerrar Ronda" como está actualmente es para un estado pre-descarte.
+        // Lo mantendré, pero el flujo más natural es cerrar *después* del descarte.
+        if (!cartaSeleccionadaParaDescartar) {
+            alert("Debes seleccionar una carta para descartar si quieres cerrar (cerrarías con las 7 restantes).");
+            return;
+        }
+
+        // Simular el descarte de la carta seleccionada para evaluar las 7 restantes
+        const manoTemporalParaCerrar = manoJugador.filter(c => c.id !== cartaSeleccionadaParaDescartar.id);
+        if (manoTemporalParaCerrar.length !== 7) {
+            alert("Error al simular mano para cerrar.");
+            return;
+        }
+
+        const { esChinchon, puntosSueltos } = evaluarManoCompleto(manoTemporalParaCerrar);
+
+        if (esChinchon) {
+            // Realizar el descarte y cerrar
+            const index = manoJugador.findIndex(c => c.id === cartaSeleccionadaParaDescartar.id);
+            const [cartaDescartada] = manoJugador.splice(index, 1);
+            pozo.push(cartaDescartada);
+            cartaSeleccionadaParaDescartar = null;
+            jugadorHaRobado = false;
+            actualizarUI();
+            gameMessageElement.textContent = `¡CHINCHÓN! Descartaste ${cartaDescartada} y cerraste.`;
+            finalizarRonda("Jugador", true);
+
+        } else if (puntosSueltos <= MAX_PUNTOS_PARA_CERRAR) {
+             const index = manoJugador.findIndex(c => c.id === cartaSeleccionadaParaDescartar.id);
+            const [cartaDescartada] = manoJugador.splice(index, 1);
+            pozo.push(cartaDescartada);
+            cartaSeleccionadaParaDescartar = null;
+            jugadorHaRobado = false;
+            actualizarUI();
+            gameMessageElement.textContent = `Cerraste con ${puntosSueltos} puntos después de descartar ${cartaDescartada}.`;
+            finalizarRonda("Jugador", false);
+        } else {
+            alert("No puedes cerrar. Tus 7 cartas restantes tras el descarte sumarían más de " + MAX_PUNTOS_PARA_CERRAR + " puntos.");
+        }
+    }
+
+
+    function cambiarTurno() {
+        turnoJugador = !turnoJugador;
+        jugadorHaRobado = false;
+        cartaSeleccionadaParaDescartar = null;
+
+        if (!turnoJugador) {
+            gameMessageElement.textContent = "Turno de la CPU...";
+            actualizarUI();
+            setTimeout(turnoCPU, 1500);
+        } else {
+            gameMessageElement.textContent = "Tu turno. Roba una carta.";
+            revisarMazoPozo();
+            actualizarUI();
+        }
+    }
+
+    function revisarMazoPozo() {
+        if (mazo.length === 0 && pozo.length > 1) {
+            gameMessageElement.textContent = "El mazo se acabó. Barajando el pozo...";
+            const ultimaPozo = pozo.pop();
+            mazo = [...pozo];
+            pozo = [ultimaPozo];
+            for (let i = mazo.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mazo[i], mazo[j]] = [mazo[j], mazo[i]];
+            }
+            renderizarMazo(); // Actualizar contador del mazo
+            gameMessageElement.textContent = "Mazo repuesto con el pozo. Tu turno.";
+        } else if (mazo.length === 0 && pozo.length <=1) {
+            gameMessageElement.textContent = "¡No hay más cartas para robar! Ronda en empate técnico.";
+            finalizarRonda(null, false, true);
+        }
+    }
+
+
+    // --- LÓGICA DE COMBINACIONES Y CPU (Adaptada para Poker si es necesario) ---
+    function ordenarMano(mano) { // Por palo, luego valor
+        return mano.slice().sort((a, b) => {
+            if (a.palo < b.palo) return -1;
+            if (a.palo > b.palo) return 1;
+            return a.valorNum - b.valorNum;
+        });
+    }
+    function ordenarManoPorValor(mano) { // Solo por valor
+        return mano.slice().sort((a, b) => a.valorNum - b.valorNum);
+    }
+
+    function obtenerCombinacionesPosibles(mano) {
+        // Esta función es clave y puede ser compleja. Mantenemos la heurística.
+        // As = 1, J=11, Q=12, K=13. A-2-3 es posible. K-Q-J es posible.
+        // No se considera A-K-Q como escalera por defecto, As es el más bajo.
+        const combinaciones = [];
+        const manoCopia = mano.slice(); // Trabajar con una copia
+
+        // Buscar Escaleras (3 o más consecutivas del mismo palo)
+        // Ordenar por palo y luego por valor para facilitar la búsqueda de escaleras
+        manoCopia.sort((a, b) => {
+            if (a.palo < b.palo) return -1;
+            if (a.palo > b.palo) return 1;
+            return a.valorNum - b.valorNum;
+        });
+
+        for (let i = 0; i < manoCopia.length; i++) {
+            let escaleraActual = [manoCopia[i]];
+            for (let j = i + 1; j < manoCopia.length; j++) {
+                if (manoCopia[j].palo === escaleraActual[0].palo &&
+                    manoCopia[j].valorNum === escaleraActual[escaleraActual.length - 1].valorNum + 1) {
+                    escaleraActual.push(manoCopia[j]);
+                } else if (manoCopia[j].palo !== escaleraActual[0].palo) {
+                    break; // Cambió de palo, no puede seguir esta escalera
+                }
+            }
+            if (escaleraActual.length >= 3) {
+                // Añadir todas las sub-escaleras válidas de esta secuencia
+                for (let len = 3; len <= escaleraActual.length; len++) {
+                    for (let start = 0; start <= escaleraActual.length - len; start++) {
+                        combinaciones.push(escaleraActual.slice(start, start + len));
+                    }
+                }
+            }
+        }
+        
+        // Buscar Grupos (3 o 4 del mismo valor, diferente palo)
+        const cartasPorValor = {};
+        mano.forEach(carta => { // Usar mano original para grupos
+            if (!cartasPorValor[carta.valorNum]) cartasPorValor[carta.valorNum] = [];
+            cartasPorValor[carta.valorNum].push(carta);
+        });
+
+        for (const valor in cartasPorValor) {
+            if (cartasPorValor[valor].length >= 3) {
+                // Generar todas las combinaciones de 3 cartas si hay más de 3
+                // Esto es para el caso de tener 4 cartas del mismo valor, el trío también es una opción
+                // Para simplificar, tomamos las primeras 3 y si hay 4, también el grupo de 4.
+                combinaciones.push(cartasPorValor[valor].slice(0, 3)); // Trío
+            }
+            if (cartasPorValor[valor].length === 4) {
+                combinaciones.push(cartasPorValor[valor].slice(0, 4)); // Cuarteto
+            }
+        }
+        
+        // Filtrar para priorizar las más largas y eliminar subconjuntos exactos
+        let combinacionesUnicas = [];
+        combinaciones.sort((a,b) => b.length - a.length); // Más largas primero
+
+        for (const comb of combinaciones) {
+            let esSubconjuntoDeUnaExistente = false;
+            for (const unica of combinacionesUnicas) {
+                if (comb.every(c => unica.find(u => u.id === c.id))) {
+                    esSubconjuntoDeUnaExistente = true;
+                    break;
+                }
+            }
+            if (!esSubconjuntoDeUnaExistente) {
+                // Antes de añadir, asegurarse que no es un superconjunto de una ya existente más corta
+                // (esto es para evitar que una escalera de 3 impida una de 4 si se procesan en mal orden)
+                // La ordenación por longitud ya ayuda con esto.
+                combinacionesUnicas.push(comb);
+            }
+        }
+        // Nuevo filtro: si una escalera A234 y un trío de A existen, preferir la escalera si usa el As.
+        // Esta parte de la lógica de "mejor combinación" es la más difícil.
+        // La función evaluarManoCompleto intentará resolver esto.
+        return combinacionesUnicas;
+    }
+
+    function evaluarManoCompleto(mano) {
+        if (mano.length === 0) return { combinacionesElegidas: [], cartasSueltas: [], puntosSueltos: 0, esChinchon: false };
+        
+        const chinchon = esChinChon(mano);
+        if (chinchon) {
+            // Asegurarse de que la combinación de ChinChon sea la escalera completa
+            return { combinacionesElegidas: [ordenarMano(mano.slice())], cartasSueltas: [], puntosSueltos: 0, esChinchon: true };
+        }
+
+        let mejorResultado = {
+            combinacionesElegidas: [],
+            cartasSueltas: mano.slice(),
+            puntosSueltos: mano.reduce((sum, c) => sum + c.puntos, 0),
+            esChinchon: false
+        };
+
+        const todasCombinaciones = obtenerCombinacionesPosibles(mano.slice());
+        
+        // Backtracking para encontrar la mejor combinación de ligues no solapados
+        function encontrarMejorConfig(idxCombActual, cartasYaUsadasIds, configActual) {
+            if (idxCombActual === todasCombinaciones.length) {
+                // Se han considerado todas las combinaciones posibles para esta rama
+                let currentSueltas = mano.filter(c => !cartasYaUsadasIds.has(c.id));
+                let currentPuntos = currentSueltas.reduce((sum, c) => sum + c.puntos, 0);
+
+                if (currentPuntos < mejorResultado.puntosSueltos) {
+                    mejorResultado = {
+                        combinacionesElegidas: configActual.slice(),
+                        cartasSueltas: currentSueltas,
+                        puntosSueltos: currentPuntos,
+                        esChinchon: false
+                    };
+                } else if (currentPuntos === mejorResultado.puntosSueltos) {
+                    // Preferir la que tiene más cartas ligadas
+                    const numLigadasActual = configActual.reduce((sum, meld) => sum + meld.length, 0);
+                    const numLigadasMejor = mejorResultado.combinacionesElegidas.reduce((sum, meld) => sum + meld.length, 0);
+                    if (numLigadasActual > numLigadasMejor) {
+                        mejorResultado = {
+                            combinacionesElegidas: configActual.slice(),
+                            cartasSueltas: currentSueltas,
+                            puntosSueltos: currentPuntos,
+                            esChinchon: false
+                        };
+                    }
+                }
+                return;
+            }
+
+            // Opción 1: No usar la combinación actual (todasCombinaciones[idxCombActual])
+            encontrarMejorConfig(idxCombActual + 1, new Set(cartasYaUsadasIds), configActual.slice());
+
+            // Opción 2: Intentar usar la combinación actual
+            const combIntento = todasCombinaciones[idxCombActual];
+            let sePuedeUsar = true;
+            for (const cartaDeComb of combIntento) {
+                if (cartasYaUsadasIds.has(cartaDeComb.id)) {
+                    sePuedeUsar = false;
+                    break;
+                }
+            }
+
+            if (sePuedeUsar) {
+                const nuevasCartasUsadasIds = new Set(cartasYaUsadasIds);
+                combIntento.forEach(c => nuevasCartasUsadasIds.add(c.id));
+                const nuevaConfigActual = configActual.slice();
+                nuevaConfigActual.push(combIntento);
+                encontrarMejorConfig(idxCombActual + 1, nuevasCartasUsadasIds, nuevaConfigActual);
+            }
+        }
+        
+        if(todasCombinaciones.length > 0) {
+             encontrarMejorConfig(0, new Set(), []);
+        }
+       
+        return mejorResultado;
+    }
+
+    function esChinChon(mano) { // 7 cartas, mismo palo, consecutivas
+        if (mano.length !== 7) return false;
+        const manoOrd = ordenarMano(mano.slice()); // Ordena por palo, luego valor
+        const primerPalo = manoOrd[0].palo;
+        for (let i = 0; i < manoOrd.length; i++) {
+            if (manoOrd[i].palo !== primerPalo) return false;
+            if (i > 0 && manoOrd[i].valorNum !== manoOrd[i-1].valorNum + 1) return false;
+        }
+        return true;
+    }
+
+
+    function cpuDecideRobar(manoCpu, cartaPozo) {
+        if (!cartaPozo) return "mazo";
+
+        if (manoCpu.length === 6) {
+            const tempManoConPozo = [...manoCpu, cartaPozo];
+            if (esChinChon(tempManoConPozo)) return "pozo";
+        }
+
+        const { puntosSueltos: puntosActuales } = evaluarManoCompleto(manoCpu);
+        let mejorPuntosConPozo = Infinity;
+        const manoConPozo = [...manoCpu, cartaPozo];
+        
+        if (manoConPozo.length > 7) {
+            for (let i = 0; i < manoConPozo.length; i++) {
+                const tempManoEval = manoConPozo.filter((_, idx) => idx !== i);
+                const { puntosSueltos: puntosTemp } = evaluarManoCompleto(tempManoEval);
+                if (puntosTemp < mejorPuntosConPozo) mejorPuntosConPozo = puntosTemp;
+            }
+        } else {
+             const { puntosSueltos: puntosTemp } = evaluarManoCompleto(manoConPozo);
+             mejorPuntosConPozo = puntosTemp;
+        }
+
+        if (mejorPuntosConPozo < puntosActuales - 3 || (mejorPuntosConPozo <= MAX_PUNTOS_PARA_CERRAR && puntosActuales > MAX_PUNTOS_PARA_CERRAR)) {
+            return "pozo";
+        }
+        return "mazo";
+    }
+
+    function cpuEligeDescarte(manoCpuOriginal) {
+        let manoCpu = manoCpuOriginal.slice(); // Trabajar con copia
+        let cartaADescartar = null;
+        let minPuntosSueltosPostDescarte = Infinity;
+
+        if (manoCpu.length <= 1) return manoCpu[0];
+
+        for (let i = 0; i < manoCpu.length; i++) {
+            const cartaPotencialDescarte = manoCpu[i];
+            const tempMano = manoCpu.filter(c => c.id !== cartaPotencialDescarte.id);
+            const { puntosSueltos } = evaluarManoCompleto(tempMano);
+
+            if (puntosSueltos < minPuntosSueltosPostDescarte) {
+                minPuntosSueltosPostDescarte = puntosSueltos;
+                cartaADescartar = cartaPotencialDescarte;
+            } else if (puntosSueltos === minPuntosSueltosPostDescarte) {
+                if (cartaADescartar === null || cartaPotencialDescarte.puntos > cartaADescartar.puntos) {
+                    cartaADescartar = cartaPotencialDescarte;
+                }
+            }
+        }
+        return cartaADescartar || manoCpu[Math.floor(Math.random() * manoCpu.length)];
+    }
+
+    function turnoCPU() {
+        if (juegoTerminado) return;
+        gameMessageElement.textContent = "CPU está pensando...";
+
+        setTimeout(() => {
+            revisarMazoPozo();
+            if (mazo.length === 0 && pozo.length <=1 && !turnoJugador) {
+                finalizarRonda(null, false, true);
+                return;
+            }
+
+            const cartaDelPozo = pozo.length > 0 ? pozo[pozo.length - 1] : null;
+            const decisionRobo = cpuDecideRobar(manoCPU, cartaDelPozo);
+            let cartaRobadaCPU;
+
+            if (decisionRobo === "pozo" && cartaDelPozo) {
+                cartaRobadaCPU = pozo.pop();
+                gameMessageElement.textContent = `CPU ha robado ${cartaRobadaCPU} del pozo.`;
+            } else {
+                if (mazo.length === 0) {
+                     finalizarRonda(null, false, true); return;
+                }
+                cartaRobadaCPU = mazo.pop();
+                gameMessageElement.textContent = "CPU ha robado del mazo.";
+            }
+            manoCPU.push(cartaRobadaCPU);
+            // No es necesario actualizar UI aquí, se hará después del descarte
+
+            setTimeout(() => {
+                const cartaDescartadaCPU = cpuEligeDescarte(manoCPU); // cpuEligeDescarte ahora no modifica manoCPU
+                const index = manoCPU.findIndex(c => c.id === cartaDescartadaCPU.id);
+                if (index > -1) {
+                    manoCPU.splice(index, 1); // Ahora se modifica manoCPU
+                    pozo.push(cartaDescartadaCPU);
+                    gameMessageElement.textContent = `CPU ha descartado ${cartaDescartadaCPU}.`;
+                } else { // Fallback
+                    if (manoCPU.length > 0) {
+                        const fallbackDescarte = manoCPU.pop();
+                        pozo.push(fallbackDescarte);
+                        gameMessageElement.textContent = `CPU ha descartado (fallback) ${fallbackDescarte}.`;
+                    }
+                }
+                actualizarUI();
+
+                const { esChinchon: cpuChinchon, puntosSueltos: puntosCPUSueltos } = evaluarManoCompleto(manoCPU);
+                if (cpuChinchon) {
+                    finalizarRonda("CPU", true);
+                } else if (puntosCPUSueltos <= MAX_PUNTOS_PARA_CERRAR - 2) { // CPU más agresivo
+                    finalizarRonda("CPU", false);
+                } else {
+                    cambiarTurno();
+                }
+            }, 1000); // Tiempo para descarte
+        }, 1000); // Tiempo para robar
+    }
+
+
+    function finalizarRonda(cerrador, hizoChinchon, empateTecnico = false) {
+        btnDrawDeck.disabled = true;
+        btnDrawDiscard.disabled = true;
+        btnDiscard.disabled = true;
+        btnCloseRound.disabled = true;
+        btnNextRound.style.display = 'inline-block';
+
+        let evalJugador = evaluarManoCompleto(manoJugador);
+        let evalCPU = evaluarManoCompleto(manoCPU);
+        let puntosRondaJugador = evalJugador.puntosSueltos;
+        let puntosRondaCPU = evalCPU.puntosSueltos;
+        let mensajeGanadorRonda = "";
+
+        if (empateTecnico) {
+            puntuacionJugador += puntosRondaJugador;
+            puntuacionCPU += puntosRondaCPU;
+            mensajeGanadorRonda = "Ronda en empate técnico. Se suman los puntos de las manos.";
+        } else if (cerrador === "Jugador") {
+            if (hizoChinchon) {
+                puntuacionJugador += PUNTOS_CHINCHON;
+                puntuacionCPU += puntosRondaCPU;
+                mensajeGanadorRonda = "¡Jugador hizo ChinChón!";
+            } else {
+                puntuacionJugador += (puntosRondaJugador === 0) ? PUNTOS_CERRAR_CON_CERO : puntosRondaJugador;
+                if (puntosRondaCPU < puntosRondaJugador && puntosRondaJugador > 0) {
+                    puntuacionJugador += PENALIZACION_CORTE_FALLIDO;
+                    mensajeGanadorRonda = `Jugador cerró, pero CPU tenía menos puntos (${puntosRondaCPU}). ¡Penalización para Jugador!`;
+                } else {
+                     mensajeGanadorRonda = `Jugador cerró con ${puntosRondaJugador} puntos.`;
+                }
+                puntuacionCPU += puntosRondaCPU;
+            }
+        } else if (cerrador === "CPU") {
+            if (hizoChinchon) {
+                puntuacionCPU += PUNTOS_CHINCHON;
+                puntuacionJugador += puntosRondaJugador;
+                mensajeGanadorRonda = "¡CPU hizo ChinChón!";
+            } else {
+                puntuacionCPU += (puntosRondaCPU === 0) ? PUNTOS_CERRAR_CON_CERO : puntosRondaCPU;
+                if (puntosRondaJugador < puntosRondaCPU && puntosRondaCPU > 0) {
+                    puntuacionCPU += PENALIZACION_CORTE_FALLIDO;
+                    mensajeGanadorRonda = `CPU cerró, pero Jugador tenía menos puntos (${puntosRondaJugador}). ¡Penalización para CPU!`;
+                } else {
+                     mensajeGanadorRonda = `CPU cerró con ${puntosRondaCPU} puntos.`;
+                }
+                puntuacionJugador += puntosRondaJugador;
+            }
+        }
+
+        document.getElementById('summary-player-points-round').textContent = `${puntosRondaJugador}`;
+        mostrarCartasEnResumen('summary-player-melds', evalJugador.combinacionesElegidas, true);
+        mostrarCartasEnResumen('summary-player-unmelded', evalJugador.cartasSueltas, false);
+
+        document.getElementById('summary-cpu-points-round').textContent = `${puntosRondaCPU}`;
+        mostrarCartasEnResumen('summary-cpu-melds', evalCPU.combinacionesElegidas, true);
+        mostrarCartasEnResumen('summary-cpu-unmelded', evalCPU.cartasSueltas, false);
+        
+        document.getElementById('round-winner-message').textContent = mensajeGanadorRonda;
+        roundSummaryModal.style.display = "flex";
+
+        actualizarUI(); // Para reflejar puntuaciones finales de ronda
+        verificarFinPartida();
+    }
+    
+    function mostrarCartasEnResumen(elementId, items, esMelded) { // items puede ser array de combinaciones o array de cartas sueltas
+        const container = document.getElementById(elementId);
+        container.innerHTML = '';
+        if (!items || items.length === 0) {
+            container.textContent = "Ninguna"; return;
+        }
+
+        if (esMelded) { // items es un array de arrays de cartas (combinaciones)
+            items.forEach(grupoDeCartas => {
+                 const groupDiv = document.createElement('div');
+                 groupDiv.style.marginRight = '10px'; groupDiv.style.marginBottom = '5px';
+                 groupDiv.style.border = '1px solid #555'; groupDiv.style.padding = '3px';
+                 grupoDeCartas.forEach(carta => {
+                    const cardEl = carta.getHTML();
+                    cardEl.classList.add('melded'); cardEl.onclick = null; cardEl.draggable = false;
+                    groupDiv.appendChild(cardEl);
+                });
+                container.appendChild(groupDiv);
+            });
+        } else { // items es un array de cartas (sueltas)
+            items.forEach(carta => {
+                const cardEl = carta.getHTML();
+                cardEl.classList.add('unmelded'); cardEl.onclick = null; cardEl.draggable = false;
+                container.appendChild(cardEl);
+            });
+        }
+    }
+
+    function closeModal() {
+        roundSummaryModal.style.display = "none";
+        if (juegoTerminado) {
+            btnNextRound.style.display = 'none';
+            btnNewGame.style.display = 'inline-block';
+            gameMessageElement.textContent += " --- Presiona 'Nuevo Juego' para empezar otra vez.";
+        }
+    }
+
+    function verificarFinPartida() {
+        if (puntuacionJugador <= LIMITE_PUNTOS_PARTIDA || puntuacionCPU <= LIMITE_PUNTOS_PARTIDA) {
+            juegoTerminado = true;
+            let mensajeFinal = "¡Fin de la Partida! ";
+            if (puntuacionJugador < puntuacionCPU) {
+                mensajeFinal += (puntuacionJugador <= LIMITE_PUNTOS_PARTIDA && puntuacionCPU > LIMITE_PUNTOS_PARTIDA) ? "¡La CPU superó el límite! ¡GANASTE!" : "¡GANASTE!";
+            } else if (puntuacionCPU < puntuacionJugador) {
+                mensajeFinal += (puntuacionCPU <= LIMITE_PUNTOS_PARTIDA && puntuacionJugador > LIMITE_PUNTOS_PARTIDA) ? "¡Superaste el límite! ¡GANA LA CPU!" : "¡GANA LA CPU!";
+            } else {
+                mensajeFinal += "¡EMPATE!";
+            }
+            gameMessageElement.textContent = mensajeFinal;
+            document.getElementById('modal-close-button').textContent = "Ver Resultados Finales";
+        }
+    }
+
+    function startNewRound() {
+        if (juegoTerminado) return;
+        rondaActual++;
+        mazo = []; pozo = []; manoJugador = []; manoCPU = [];
+        jugadorHaRobado = false; cartaSeleccionadaParaDescartar = null;
+        turnoJugador = (rondaActual % 2 === 1);
+
+        crearBaraja();
+        repartirCartas();
+
+        gameMessageElement.textContent = turnoJugador ? "Tu turno. Roba una carta." : "Turno de la CPU...";
+        btnNextRound.style.display = 'none';
+        actualizarUI();
+
+        if (!turnoJugador) setTimeout(turnoCPU, 1500);
+    }
+
+    function initGame() {
+        puntuacionJugador = 0; puntuacionCPU = 0; rondaActual = 1;
+        juegoTerminado = false; turnoJugador = true;
+        btnNewGame.style.display = 'none';
+        startNewRound();
+    }
+
+    window.onload = initGame;
+
+</script>
+</body>
+</html>
+
+```
+
+**Resumen de los Cambios Implementados:**
+
+1.  **Tablero de Puntuación (CSS):**
+    *   Se movió el `div.scoreboard` fuera del `.game-container` en el HTML.
+    *   Se aplicó `position: fixed; top: 10px; right: 10px;` y se ajustaron los tamaños y padding.
+
+2.  **Cartas de Póker (JS y CSS):**
+    *   Nuevas constantes: `PALOS_POKER`, `VALORES_DISPLAY_POKER`, `VALORES_NUMERICOS_POKER`, `PUNTOS_CARTAS_POKER`.
+    *   `crearBaraja()` ahora usa estas constantes para generar 52 cartas.
+    *   `Carta.getHTML()` y `getSuitSymbolPoker()` actualizadas para mostrar valores y palos de póker (A, K, Q, J, 10, 9... y ♥ ♦ ♣ ♠).
+    *   CSS actualizado para los colores de los palos de póker y el dorso de las cartas (ahora azul).
+    *   La lógica de escaleras en `obtenerCombinacionesPosibles` y `esChinChon` ya debería funcionar con los valores numéricos (A=1, K=13).
+
+3.  **Ordenar Cartas en la Mano (JS y CSS):**
+    *   **HTML:** Se añadió `draggable="true"` a las cartas del jugador en `renderizarMano`.
+    *   **CSS:**
+        *   `.card { cursor: grab; }`
+        *   Clase `.dragging` para la carta que se está arrastrando.
+        *   Clase `.drag-over-placeholder` para un feedback visual de dónde se soltaría la carta (esta implementación del placeholder es básica).
+    *   **JavaScript:**
+        *   Eventos `dragstart` y `dragend` añadidos a las cartas del jugador.
+        *   Eventos `dragover`, `dragenter`, `dragleave`, `drop` añadidos al `playerHandElement`.
+        *   `handleDragStart`: Almacena la carta arrastrada.
+        *   `handleDragOverContainer`: Previene el comportamiento por defecto y gestiona el placeholder visual.
+        *   `handleDropOnContainer`:
+            *   Obtiene la carta arrastrada y el elemento sobre el que se soltó (o la posición).
+            *   Reordena el array `manoJugador`.
+            *   Llama a `actualizarUI()` para reflejar el nuevo orden.
+        *   `getDragAfterElement()`: Función de utilidad para determinar la posición de inserción durante el arrastre.
+        *   El placeholder visual es un `div` simple que se inserta y elimina. Puede ser un poco parpadeante, pero da una idea de la funcionalidad.
+
+**Notas Adicionales:**
+
+*   **Flujo de Cierre:** He intentado clarificar el flujo de "cerrar ronda". Ahora, la decisión de cerrar se presenta explícitamente al jugador *después* de que confirma un descarte, si las condiciones se cumplen. El botón "Cerrar Ronda" independiente se mantiene pero su uso es un poco menos natural en el flujo actual; podría eliminarse o integrarse mejor si se desea.
+*   **Lógica de `evaluarManoCompleto`:** Sigue siendo una heurística. Con 52 cartas, hay más combinaciones. La versión actual intenta un backtracking para encontrar una buena configuración de ligues, pero no es exhaustiva ni garantiza la solución óptima en todos los casos debido a la complejidad del problema (Set Cover).
+*   **Drag and Drop:** La implementación del drag and drop es funcional. El feedback visual (placeholder) es básico; podría mejorarse para una experiencia de usuario más pulida (por ejemplo, animando el espacio que se abre).
+*   **Animaciones de Robo/Descarte:** Las he comentado (`// animateCardMove(...)`) porque a veces pueden interferir ligeramente con la interactividad inmediata del drag-and-drop o la selección rápida. Puedes descomentarlas si prefieres las animaciones visuales, pero ten en cuenta posibles pequeños retrasos.
+
+Abre este nuevo código en tu navegador y prueba las nuevas funcionalidades. ¡Deberías poder jugar con cartas de póker, ver el marcador arriba a la derecha y ordenar tus cartas!

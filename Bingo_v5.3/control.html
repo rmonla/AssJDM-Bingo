@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control del Bingo Refactorizado</title>
+    <link rel="stylesheet" href="css/control-styles.css">
+</head>
+<body>
+    <div class="control-panel-container">
+        <h1>Panel de Control del Bingo</h1>
+
+        <details id="mainConfigAccordion" open>
+            <summary>CONFIGURACIÓN PRINCIPAL</summary>
+            <div class="accordion-content">
+                <div class="form-group">
+                    <label for="eventName">Nombre del Evento:</label>
+                    <input type="text" id="eventName" value="Gran Bingo Solidario">
+                </div>
+                <div class="form-group">
+                    <label for="eventDescription">Descripción Corta:</label>
+                    <textarea id="eventDescription">¡Participa y Gana Fabulosos Premios!</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="eventLogo">Logo del Evento (opcional, JPG/PNG, máx 2MB):</label>
+                    <input type="file" id="eventLogo" accept="image/jpeg, image/png">
+                    <div id="logoPreviewContainer" class="image-preview-container hidden">
+                        <img id="logoPreview" src="#" alt="Vista previa del logo" class="image-preview">
+                    </div>
+                </div>
+                <button id="saveMainConfigBtn" class="action-button btn-save">Guardar Configuración Principal</button>
+            </div>
+        </details>
+
+        <details id="prizesConfigAccordion">
+            <summary>PREMIOS</summary>
+            <div class="accordion-content">
+                <!-- Pestañas para Líneas -->
+                <div class="tabs-container" id="prizeTabsContainer">
+                    <div class="tab-buttons" id="linePrizeTabs">
+                        <!-- Los botones de las pestañas se generarán aquí -->
+                    </div>
+                    <div class="tab-contents" id="linePrizeContents">
+                        <!-- El contenido de las pestañas (formularios de línea) se generará aquí -->
+                    </div>
+                </div>
+                <!-- Configuración directa para Bingo -->
+                <div id="bingoPrizeConfigContainer">
+                    <!-- El formulario de Bingo se generará aquí -->
+                </div>
+                <button id="savePrizesConfigBtn" class="action-button btn-save" style="margin-top:15px;">Guardar Configuración de Premios</button>
+            </div>
+        </details>
+        
+        <details id="controlsAccordion" open>
+            <summary>CONTROLES DEL JUEGO</summary>
+            <div class="accordion-content">
+                 <div class="form-group">
+                    <label for="currentPlayMessageDisplay">Jugando por:</label>
+                    <input type="text" id="currentPlayMessageDisplay" readonly style="background-color: #e9ecef; font-weight: bold; color: #495057;">
+                </div>
+                <div class="button-container">
+                    <button id="drawBallBtn" class="action-button btn-draw">Sacar Bolilla</button>
+                    <button id="announcePrizeCheckBtn" class="action-button btn-verify">Se Cantó <span id="currentPrizeToVerifyText"></span></button> 
+                    <button id="resetGameBtn" class="action-button btn-reset">Reiniciar Juego</button>
+                    <button id="exportPdfBtn" class="action-button btn-export-pdf" disabled>Exportar Jugada a PDF</button>
+                </div>
+
+                <div id="winnerVerificationSection" class="hidden">
+                    <h3>Verificación de Ganador para: <span id="verifyingPrizeNameSpan"></span></h3>
+                    <div class="form-group">
+                        <label for="winnerNameInput">Nombre del Ganador:</label>
+                        <input type="text" id="winnerNameInput" placeholder="Nombre completo del ganador">
+                    </div>
+                    <div class="form-group">
+                        <label for="winnerPhotoInput">Foto del Ganador (opcional):</label>
+                        <input type="file" id="winnerPhotoInput" accept="image/jpeg, image/png">
+                        <div id="winnerPhotoPreviewContainer" class="image-preview-container hidden">
+                            <img id="winnerPhotoPreview" src="#" alt="Foto Ganador" class="image-preview">
+                        </div>
+                    </div>
+                    <div class="button-container" style="grid-template-columns: 1fr 1fr;">
+                        <button id="confirmAndAnnounceWinnerBtn" class="action-button btn-confirm-winner">Confirmar y Anunciar</button>
+                        <button id="cancelVerificationBtn" class="action-button btn-cancel">Cancelar Verificación</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <div class="instructions">
+        <p>Abre la <a href="display.html" target="_blank" rel="noopener noreferrer">Ventana de Pantalla</a> en otro monitor.</p>
+        <p>Guarda cada sección de configuración para que los cambios se reflejen.</p>
+    </div>
+
+    <script src="js/lib/jspdf.umd.min.js"></script>
+    <script src="js/lib/html2canvas.min.js"></script>
+    <script src="js/control-logic.js"></script>
+</body>
+</html>

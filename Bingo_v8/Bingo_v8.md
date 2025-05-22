@@ -1,0 +1,1898 @@
+# Propuesta Mejorada para el Sistema de Bingo Interactivo
+
+## Pantalla de CONTROL (Panel de Operador)
+
+### Visualización de Números
+- **Historial lateral**: Mostrar los últimos 5 números sorteados en una columna dedicada, con estilo discreto pero legible
+- **Formato numérico**: Todos los números mostrados en formato de 2 dígitos (00-90)
+
+### Funcionalidad de Sorteo
+- **Modo manual**: Botón tradicional para sacar bolilla con un click
+- **Modo automático**: 
+  - Selector de intervalo (3, 4 o 5 segundos)
+  - Botón de inicio/parada para el modo automático
+  - Indicador visual del estado (activo/inactivo)
+
+### Estructura de Acordeón
+1. **Datos de la Jugada**:
+   - Configuración básica del evento (nombre, descripción)
+   - Carga de logo (opcional)
+
+2. **Premios** (sistema de pestañas):
+   - **Regla de habilitación**: Solo se puede activar Línea 2 si Línea 1 está habilitada, igual para Línea 3
+   - **Nomenclatura fija**: Los premios se llaman siempre "Línea 1", "Línea 2", "Línea 3" y "Bingo"
+   - **Configuración por premio**:
+     - Descripción editable
+     - Selector de imagen (agregar/remover)
+     - Estado (habilitado/deshabilitado)
+
+3. **Controles**:
+   - Gestión del juego (sorteo, verificación)
+   - Configuración del modo automático
+   - Reinicio y exportación
+
+## Pantalla de DISPLAY (Visualización Pública)
+
+### Jerarquía Visual
+1. **Elementos principales** (máxima prioridad):
+   - Bolilla actual (énfasis visual)
+   - Tablero de números (00-90)
+
+2. **Elementos secundarios**:
+   - Historial de bolillas
+   - Información del evento (reducido, discreto)
+
+### Flujo de Verificación
+- **Fase de verificación**:
+  - No ocultar el tablero principal
+  - Mostrar mensaje de verificación superpuesto pero transparente
+- **Anuncio de ganador**:
+  - Efecto de overlay completo solo al confirmar ganador
+  - Animación de destacado
+  - Shadow/blur en el fondo
+
+## Implementación Técnica
+
+### Estructura de Archivos
+- **CSS**: Un único archivo `bingo-styles.css` con:
+  - Estilos para ambas pantallas (control + display)
+  - Media queries para responsividad
+  - Variables CSS para consistencia visual
+
+- **JavaScript**: Un único archivo `bingo-core.js` con:
+  - Lógica compartida
+  - Comunicación entre paneles
+  - Gestión de estado
+
+### Restricciones
+- **Rango numérico**: 00-90 (siempre mostrados con 2 dígitos)
+- **Dependencias externas**:
+  - Solo librerías esenciales (jsPDF, html2canvas, confetti)
+  - Sin frameworks adicionales
+
+### Consideraciones de UX
+- Minimizar clicks innecesarios
+- Feedback visual claro para todas las acciones
+- Transiciones suaves entre estados
+- Priorización del contenido según importancia
+
+# Exportación de Código: Bingo_v5.3
+Ruta raíz del proyecto: `/home/rmonla/Documents/GitHub/AssJDM-Bingo/Bingo_v5.3`
+Fecha de exportación: dom 18 may 2025 21:44:37 -03
+
+## Estructura de Archivos (Árbol)
+Generando estructura de árbol...
+```text
+├── control.html
+├── css
+│   ├── control-styles.css
+│   └── display-styles.css
+├── display.html
+├── getCodFuente.sh
+└── js
+    ├── control-logic.js
+    └── display-logic.js
+```
+
+## Lista de Archivos Incluidos
+* `control.html`
+* `css/control-styles.css`
+* `css/display-styles.css`
+* `display.html`
+* `getCodFuente.sh`
+* `js/control-logic.js`
+* `js/display-logic.js`
+
+## Contenido de los Archivos
+### `control.html`
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control del Bingo Refactorizado</title>
+    <link rel="stylesheet" href="css/control-styles.css">
+</head>
+<body>
+    <div class="control-panel-container">
+        <h1>Panel de Control del Bingo</h1>
+
+        <details id="mainConfigAccordion" open>
+            <summary>CONFIGURACIÓN PRINCIPAL</summary>
+            <div class="accordion-content">
+                <div class="form-group">
+                    <label for="eventName">Nombre del Evento:</label>
+                    <input type="text" id="eventName" value="Gran Bingo Solidario">
+                </div>
+                <div class="form-group">
+                    <label for="eventDescription">Descripción Corta:</label>
+                    <textarea id="eventDescription">¡Participa y Gana Fabulosos Premios!</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="eventLogo">Logo del Evento (opcional, JPG/PNG, máx 2MB):</label>
+                    <input type="file" id="eventLogo" accept="image/jpeg, image/png">
+                    <div id="logoPreviewContainer" class="image-preview-container hidden">
+                        <img id="logoPreview" src="#" alt="Vista previa del logo" class="image-preview">
+                    </div>
+                </div>
+                <button id="saveMainConfigBtn" class="action-button btn-save">Guardar Configuración Principal</button>
+            </div>
+        </details>
+
+        <details id="prizesConfigAccordion">
+            <summary>PREMIOS</summary>
+            <div class="accordion-content">
+                <!-- Pestañas para Líneas -->
+                <div class="tabs-container" id="prizeTabsContainer">
+                    <div class="tab-buttons" id="linePrizeTabs">
+                        <!-- Los botones de las pestañas se generarán aquí -->
+                    </div>
+                    <div class="tab-contents" id="linePrizeContents">
+                        <!-- El contenido de las pestañas (formularios de línea) se generará aquí -->
+                    </div>
+                </div>
+                <!-- Configuración directa para Bingo -->
+                <div id="bingoPrizeConfigContainer">
+                    <!-- El formulario de Bingo se generará aquí -->
+                </div>
+                <button id="savePrizesConfigBtn" class="action-button btn-save" style="margin-top:15px;">Guardar Configuración de Premios</button>
+            </div>
+        </details>
+        
+        <details id="controlsAccordion" open>
+            <summary>CONTROLES DEL JUEGO</summary>
+            <div class="accordion-content">
+                 <div class="form-group">
+                    <label for="currentPlayMessageDisplay">Jugando por:</label>
+                    <input type="text" id="currentPlayMessageDisplay" readonly style="background-color: #e9ecef; font-weight: bold; color: #495057;">
+                </div>
+                <div class="button-container">
+                    <button id="drawBallBtn" class="action-button btn-draw">Sacar Bolilla</button>
+                    <button id="announcePrizeCheckBtn" class="action-button btn-verify">Se Cantó <span id="currentPrizeToVerifyText"></span></button> 
+                    <button id="resetGameBtn" class="action-button btn-reset">Reiniciar Juego</button>
+                    <button id="exportPdfBtn" class="action-button btn-export-pdf" disabled>Exportar Jugada a PDF</button>
+                </div>
+
+                <div id="winnerVerificationSection" class="hidden">
+                    <h3>Verificación de Ganador para: <span id="verifyingPrizeNameSpan"></span></h3>
+                    <div class="form-group">
+                        <label for="winnerNameInput">Nombre del Ganador:</label>
+                        <input type="text" id="winnerNameInput" placeholder="Nombre completo del ganador">
+                    </div>
+                    <div class="form-group">
+                        <label for="winnerPhotoInput">Foto del Ganador (opcional):</label>
+                        <input type="file" id="winnerPhotoInput" accept="image/jpeg, image/png">
+                        <div id="winnerPhotoPreviewContainer" class="image-preview-container hidden">
+                            <img id="winnerPhotoPreview" src="#" alt="Foto Ganador" class="image-preview">
+                        </div>
+                    </div>
+                    <div class="button-container" style="grid-template-columns: 1fr 1fr;">
+                        <button id="confirmAndAnnounceWinnerBtn" class="action-button btn-confirm-winner">Confirmar y Anunciar</button>
+                        <button id="cancelVerificationBtn" class="action-button btn-cancel">Cancelar Verificación</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <div class="instructions">
+        <p>Abre la <a href="display.html" target="_blank" rel="noopener noreferrer">Ventana de Pantalla</a> en otro monitor.</p>
+        <p>Guarda cada sección de configuración para que los cambios se reflejen.</p>
+    </div>
+
+    <script src="js/lib/jspdf.umd.min.js"></script>
+    <script src="js/lib/html2canvas.min.js"></script>
+    <script src="js/control-logic.js"></script>
+</body>
+</html>```
+
+### `css/control-styles.css`
+```css
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 95vh;
+    box-sizing: border-box;
+}
+
+.control-panel-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 800px; /* Aumentado para pestañas */
+    margin-bottom: 20px;
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+details {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: background-color 0.3s;
+}
+
+details[open] {
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+summary {
+    font-weight: 600;
+    font-size: 1.25em;
+    padding: 18px 20px;
+    cursor: pointer;
+    outline: none;
+    color: #34495e;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+summary::after {
+    content: '▼';
+    font-size: 0.8em;
+    color: #34495e;
+    transition: transform 0.2s ease-in-out;
+}
+
+details[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: 0px 20px 20px 20px;
+    border-top: 1px solid #e7e7e7;
+}
+
+.form-group { margin-bottom: 18px; }
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.form-group input[type="text"],
+.form-group input[type="file"],
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    vertical-align: middle;
+    height: 1.1em; width: 1.1em;
+}
+.form-group textarea { min-height: 80px; resize: vertical; }
+
+.image-preview-container { margin-top: 10px; }
+.image-preview {
+    max-width: 180px;
+    max-height: 120px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    object-fit: contain;
+    display: block;
+    background-color: #f8f9fa;
+}
+.hidden { display: none !important; }
+
+/* Tabs para Premios de Línea */
+.tabs-container {
+    margin-bottom: 20px;
+}
+.tab-buttons {
+    display: flex;
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 15px;
+}
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    font-size: 1em;
+    font-weight: 500;
+    color: #495057;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Alinea con el borde inferior del contenedor */
+    transition: color 0.2s, border-color 0.2s;
+}
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: 600;
+}
+.tab-content {
+    display: none;
+    padding-top: 10px;
+}
+.tab-content.active {
+    display: block;
+}
+
+.prize-item { /* Usado para el premio Bingo y dentro de cada tab-content */
+    border: 1px solid #d1d9e6;
+    padding: 18px;
+    border-radius: 8px;
+    background-color: #fdfdff;
+}
+.prize-item h3 { /* Para "Configuración Premio Bingo" */
+    margin-top: 0; margin-bottom: 15px; color: #17a2b8; font-size: 1.15em; font-weight: 600;
+}
+.prize-item h4 { /* Para títulos dentro de pestañas o items individuales */
+    margin-top: 0; margin-bottom: 15px; color: #2d3748; font-size: 1.1em;
+    display: flex; align-items: center;
+}
+.prize-item h4 label { margin-bottom: 0; font-weight: 600; }
+.prize-status { font-size: 0.8em; color: #28a745; margin-left: auto; font-style: italic;}
+
+
+.button-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+    margin-top: 25px;
+}
+.action-button {
+    padding: 14px 20px;
+    font-size: 1.05em;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.action-button:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.15); }
+.action-button:active { transform: translateY(0); box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+
+.btn-save { background-color: #007bff; }
+.btn-draw { background-color: #28a745; }
+.btn-draw:disabled { background-color: #adb5bd; cursor: not-allowed; }
+.btn-verify { background-color: #ffc107; color: #212529;}
+.btn-reset { background-color: #dc3545; }
+.btn-export-pdf { background-color: #6f42c1; } /* Púrpura para PDF */
+.btn-confirm-winner { background-color: #17a2b8; }
+.btn-cancel { background-color: #6c757d; }
+
+#winnerVerificationSection {
+    margin-top: 25px;
+    padding: 25px;
+    background-color: #e9f5ff;
+    border: 1px solid #b3d7ff;
+    border-radius: 8px;
+}
+#winnerVerificationSection h3 { margin-top: 0; color: #0056b3; font-weight: 600; }
+
+.instructions { margin-top: 30px; text-align: center; font-size: 0.95em; color: #667281; }
+.instructions a { color: #007bff; text-decoration: none; font-weight: 500; }
+.instructions a:hover { text-decoration: underline; }```
+
+### `css/display-styles.css`
+```css
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Righteous&display=swap');
+
+:root {
+    --base-font-size: clamp(10px, 1.6vw, 20px);
+    --text-light: #f8f9fa;
+    --text-medium: #c0c8d1;
+    --accent-color-1: #4dd0e1;
+    --accent-color-2: #80deea;
+    --accent-color-bingo: #FFD700;
+    --bg-dark-transparent: rgba(20, 30, 40, 0.96);
+    --border-light-transparent: rgba(255,255,255,0.12);
+    --red-ball: #ff5252;
+    --red-ball-dark: #c62828;
+    --pink-drawn: #e91e63;
+}
+
+html, body {
+    height: 100%; width: 100%; margin: 0; overflow: hidden;
+    font-size: var(--base-font-size);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(145deg, #1a2a3a 0%, #2a3f54 100%);
+    color: var(--text-light);
+    line-height: 1.45;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.8vmin;
+    box-sizing: border-box;
+}
+
+.container {
+    width: 100%; height: 100%;
+    background-color: var(--bg-dark-transparent);
+    border-radius: 1.2rem;
+    box-shadow: 0 1.8rem 3.5rem rgba(0,0,0,0.45);
+    border: 1px solid var(--border-light-transparent);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+header {
+    padding: 1rem 1.5rem; border-bottom: 3px solid var(--accent-color-1);
+    flex-shrink: 0; text-align: center;
+}
+.event-info { display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 0.6rem; }
+#eventLogoDisplay { max-height: 5.5rem; max-width: 13rem; border-radius: 0.6rem; object-fit: contain; }
+.event-text h1 {
+    font-family: 'Righteous', cursive; color: var(--accent-color-2); font-size: clamp(2em, 4.5vw, 3.2em);
+    margin: 0; text-shadow: 0 0 12px rgba(77, 208, 225, 0.8);
+}
+#eventDescriptionDisplay { font-size: clamp(0.8em, 1.8vw, 1.1em); color: var(--text-medium); margin-top: 0.4rem; }
+.game-status-display {
+    padding: 0.6rem; background-color: rgba(0,0,0,0.3); font-size: clamp(1em, 2vw, 1.3em); color: #fafad2;
+    font-weight: 600; border-radius: 0.6rem; margin-top:0.9rem;
+}
+#currentPlayDisplay { margin: 0.2rem 0; letter-spacing: 0.5px; }
+
+main.game-display-area {
+    display: flex; gap: 1.5rem; padding: 1.2rem; flex-grow: 1; overflow: auto; min-height: 0;
+}
+
+.info-column {
+    flex: 0 0 clamp(18rem, 25vw, 22rem);
+    display: flex; flex-direction: column; gap: 1.2rem; min-width: 16rem;
+}
+
+.master-board-column-display {
+    flex-grow: 1; background-color: rgba(255, 255, 255, 0.025); padding: 1rem;
+    border-radius: 1rem; box-shadow: inset 0 0 1.2rem rgba(0,0,0,0.25);
+    display: flex; flex-direction: column; align-items: center; min-width: 0;
+}
+.master-board-column-display h2 {
+    text-align: center; color: var(--accent-color-2); margin-top: 0; margin-bottom: 1rem; font-size: clamp(1.5em, 2.8vw, 2.2em);
+    font-family: 'Righteous', cursive;
+}
+
+.ball-display-container-display {
+    text-align: center; background-color: rgba(0,0,0,0.3); padding: 1.2rem; border-radius: 0.9rem;
+    border: 1px solid var(--border-light-transparent); width: 100%;
+}
+.ball-display-container-display h2 { margin-top: 0; margin-bottom: 0.8rem; color: var(--accent-color-2); font-weight: 600; font-size: clamp(1.2em, 2.2vw, 1.6em); }
+#currentBallDisplay {
+    font-family: 'Righteous', cursive; font-size: clamp(4em, 10vw, 7em);
+    color: #fff; background: radial-gradient(circle, var(--red-ball) 0%, var(--red-ball-dark) 100%);
+    width: clamp(8rem, 18vw, 12rem); height: clamp(8rem, 18vw, 12rem);
+    line-height: clamp(8rem, 18vw, 12rem);
+    border-radius: 50%; margin: 0 auto;
+    box-shadow: 0 0 1.8rem rgba(255, 82, 82, 0.75), inset 0 0 1.2rem rgba(0,0,0,0.4);
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55), background-color 0.3s;
+    border: 3px solid rgba(255,255,255,0.65);
+    display: flex; justify-content: center; align-items: center;
+}
+.ball-pop-animation { animation: pop-display 0.5s ease-out forwards; }
+@keyframes pop-display {
+    0% { transform: scale(0.4) rotate(-20deg); opacity: 0.4; }
+    60% { transform: scale(1.25) rotate(15deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+#drawnBallsListDisplay {
+    text-align: center; width: 100%; background-color: rgba(0,0,0,0.3); padding: 1rem;
+    border-radius: 0.9rem; border: 1px solid var(--border-light-transparent);
+    flex-grow: 1; display: flex; flex-direction: column;
+}
+#drawnBallsListDisplay h3 { margin-top: 0; margin-bottom: 0.6rem; color: var(--accent-color-2); font-weight: 600; font-size: clamp(1.1em, 2vw, 1.4em); }
+#drawnBallsHistoryDisplay {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem;
+    max-height: clamp(10rem, 25vh, 18rem);
+    overflow-y: auto; padding: 0.6rem; background-color: rgba(0,0,0,0.4);
+    border-radius: 0.6rem; border: 1px solid rgba(255,255,255,0.12); flex-grow: 1;
+}
+.drawn-ball-history-item-display {
+    background-color: var(--accent-color-1); color: #1a237e; padding: 0.35rem 0.9rem;
+    border-radius: 1.1rem; font-size: clamp(0.9em, 1.8vw, 1.2em); font-weight: 700; box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+}
+
+#masterBoardDisplay {
+    display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr);
+    gap: clamp(2px, 0.4vw, 5px);
+    width: 100%; max-width: clamp(25rem, 50vh, 45rem);
+    aspect-ratio: 1 / 1; margin: auto;
+}
+.master-board-cell-display {
+    background-color: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+    display: flex; justify-content: center; align-items: center;
+    font-weight: 700; font-size: clamp(0.7em, 1.8vh, 1.3em);
+    color: #bdbdbd; border-radius: 0.3rem;
+    transition: background-color 0.4s ease, color 0.4s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.master-board-cell-display.drawn {
+    background-color: var(--pink-drawn); color: white; font-weight: 800;
+    transform: scale(1.18) rotate(2deg); box-shadow: 0 0 1.2rem rgba(233, 30, 99, 0.85); z-index: 1;
+}
+
+.overlay-message-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(10,20,30,0.92);
+    display: none; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 9990; opacity: 0; transition: opacity 0.4s ease-in-out;
+    padding: 1.5rem; box-sizing: border-box; text-align: center;
+}
+.overlay-message-container.active { display: flex; opacity: 1; }
+#mainDisplayMessage {
+    font-family: 'Righteous', cursive; font-size: clamp(2.5em, 6vw, 4.5em);
+    color: var(--accent-color-bingo);
+    text-shadow: 0 0 1rem var(--accent-color-bingo), 0 0 2rem var(--accent-color-bingo), 0 0 3rem rgba(255,215,0,0.7);
+    margin-bottom: 1.5rem; animation: pulseMessage 1.5s infinite alternate;
+}
+@keyframes pulseMessage {
+    from { opacity: 0.8; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1.02); }
+}
+.winner-announcement-box {
+    background: linear-gradient(135deg, rgba(40,50,70,0.95), rgba(50,70,90,0.95));
+    padding: clamp(1.5rem, 4vh, 3rem); border-radius: 1.2rem;
+    box-shadow: 0 0 2rem rgba(255,215,0,0.4), 0 0 4rem rgba(255,215,0,0.3);
+    border: 4px solid var(--accent-color-bingo);
+    max-width: 90vw; max-height: 88vh; overflow-y: auto;
+    animation: fadeInWinnerBox 0.7s ease-out;
+}
+@keyframes fadeInWinnerBox {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.winner-announcement-box h2 {
+    font-family: 'Righteous', cursive; font-size: clamp(2em, 5vw, 3.5em);
+    color: var(--accent-color-bingo); margin-top: 0; margin-bottom: 0.5rem;
+    text-transform: uppercase; letter-spacing: 1px;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+.winner-announcement-box .prize-desc { font-size: clamp(1em, 2vw, 1.4em); color: var(--text-medium); margin-bottom: 1rem; }
+.winner-announcement-box .winner-name-label { font-size: clamp(1.2em, 2.5vw, 1.8em); color: var(--text-light); font-weight: 400; margin-bottom: 0.2rem; display:block;}
+.winner-announcement-box .winner-name-value { font-size: clamp(1.8em, 4vw, 2.8em); color: #fff; font-weight: 700; margin-bottom: 1.5rem; display:block; }
+.winner-images { display: flex; gap: clamp(1rem, 3vw, 2rem); justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 1rem;}
+.winner-images img {
+    max-width: clamp(150px, 35vmin, 300px);
+    max-height: clamp(120px, 30vmin, 250px);
+    border-radius: 0.8rem; border: 3px solid #silver; object-fit: contain;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4); background-color: rgba(0,0,0,0.2);
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(ellipse at center, 
+        rgba(255, 215, 0, 0.25) 0%,
+        rgba(255, 165, 0, 0.15) 30%,
+        rgba(255, 69, 0, 0.05) 70%,
+        transparent 100%);
+    opacity: 0;
+    transform: scale(1.5);
+    transition: opacity 1s ease-out, transform 1s ease-out;
+    pointer-events: none;
+}
+body.bingo-celebration::before {
+    opacity: 1;
+    transform: scale(1);
+    animation: bingoBgPulse 2.5s infinite alternate ease-in-out;
+}
+@keyframes bingoBgPulse {
+    0% { filter: brightness(0.9) saturate(0.9); }
+    100% { filter: brightness(1.2) saturate(1.3); }
+}
+
+@media (max-width: 768px) {
+    :root { --base-font-size: clamp(9px, 2.2vw, 18px); }
+    main.game-display-area { flex-direction: column; padding: 1rem; gap: 1rem; }
+    .info-column { flex-direction: row; width: 100%; max-width: 40rem; margin: 0 auto; }
+    #currentBallDisplay { width: clamp(7rem, 15vw, 10rem); height: clamp(7rem, 15vw, 10rem); line-height: clamp(7rem, 15vw, 10rem); }
+    #masterBoardDisplay { max-width: 92vw; }
+}
+@media (max-width: 480px) {
+    :root { --base-font-size: clamp(8px, 2.8vw, 16px); }
+    header { padding: 0.7rem 1rem; }
+    .info-column { flex-direction: column; max-width: 100%; }
+    #drawnBallsHistoryDisplay { max-height: clamp(8rem, 20vh, 12rem); }
+    .winner-images img { max-width: clamp(120px, 40vmin, 200px); max-height: clamp(100px, 35vmin, 180px); }
+}```
+
+### `display.html`
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantalla del Bingo Pro</title>
+    <link rel="stylesheet" href="css/display-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="event-info">
+                <img id="eventLogoDisplay" src="" alt="Logo del Evento" style="display:none;">
+                <div class="event-text">
+                    <h1 id="eventNameDisplay">Nombre del Bingo</h1>
+                    <p id="eventDescriptionDisplay">Descripción del evento aquí.</p>
+                </div>
+            </div>
+            <div class="game-status-display">
+                <div id="currentPlayDisplay">Jugando por: ...</div>
+            </div>
+        </header>
+
+        <main class="game-display-area">
+            <section class="info-column">
+                <div class="ball-display-container-display">
+                    <h2>Bolilla Actual</h2>
+                    <div id="currentBallDisplay">--</div>
+                </div>
+                <div id="drawnBallsListDisplay">
+                    <h3>Historial de Bolillas</h3>
+                    <div id="drawnBallsHistoryDisplay">
+                        <!-- Bolillas sacadas -->
+                    </div>
+                </div>
+            </section>
+            <section class="master-board-column-display">
+                <h2>Tablero Maestro (0-99)</h2>
+                <div id="masterBoardDisplay">
+                    <!-- Celdas del tablero maestro -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="overlayMessageContainer" class="overlay-message-container">
+        <div id="mainDisplayMessage"></div> <!-- Para mensajes como "Verificando..." -->
+        <div id="winnerAnnouncementBox" class="winner-announcement-box" style="display:none;">
+            <h2 id="announcedPrizeName"></h2>
+            <p id="announcedPrizeDescription" class="prize-desc"></p>
+            <span class="winner-name-label">¡GANADOR!</span>
+            <span id="announcedWinnerName" class="winner-name-value"></span>
+            <div class="winner-images">
+                <img id="announcedPrizeImage" src="#" alt="Imagen del Premio" style="display:none;">
+                <img id="announcedWinnerPhoto" src="#" alt="Foto del Ganador" style="display:none;">
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/display-logic.js"></script>
+</body>
+</html>```
+
+### `getCodFuente.sh`
+```bash
+#!/bin/bash
+
+# Ricardo MONLA (rmonla@)
+# v3.5 - 250518_2127
+# Script para exportar archivos de código fuente a un único archivo Markdown.
+
+# --- Variables Globales ---
+SELECTED_ROOT_FOLDER=""
+declare -a ALL_PROJECT_FILES=() # Lista de todos los archivos encontrados
+declare -a ALL_DIRS_IN_PROJECT=() # Lista de todos los directorios encontrados
+declare -A SELECTED_STATUS_MAP=() # path_archivo -> 0 o 1 (deseleccionado/seleccionado)
+declare -A EXPANDED_DIRS=() # path_directorio -> 1 si está expandido
+declare -a FINAL_SELECTED_FILES=()
+
+# --- Funciones Auxiliares ---
+
+map_extension_to_language() {
+    local filename="$1"
+    local extension="${filename##*.}"
+    extension=$(echo "$extension" | tr '[:upper:]' '[:lower:]')
+
+    case "$extension" in
+        sh|bash|zsh) echo "bash" ;;
+        py|pyw) echo "python" ;;
+        js|mjs|cjs) echo "javascript" ;;
+        ts|tsx) echo "typescript" ;;
+        java) echo "java" ;;
+        c|h|cc|cpp|hpp|cxx|hxx) echo "cpp" ;;
+        cs) echo "csharp" ;;
+        go) echo "go" ;;
+        rb) echo "ruby" ;;
+        php) echo "php" ;;
+        html|htm) echo "html" ;;
+        css) echo "css" ;;
+        scss|sass) echo "scss" ;;
+        json) echo "json" ;;
+        xml) echo "xml" ;;
+        yml|yaml) echo "yaml" ;;
+        md|markdown) echo "markdown" ;;
+        sql) echo "sql" ;;
+        swift) echo "swift" ;;
+        kt|kts) echo "kotlin" ;;
+        rs) echo "rust" ;;
+        *) echo "" ;;
+    esac
+}
+
+# Procesa la selección/deselección de archivos, mostrando una vista de árbol interactiva.
+process_file_selection() {
+    local original_pwd_ps
+    original_pwd_ps=$(pwd)
+    
+    cd "$SELECTED_ROOT_FOLDER" || { echo "Error: No se pudo acceder a la carpeta $SELECTED_ROOT_FOLDER"; exit 1; }
+
+    ALL_PROJECT_FILES=() 
+    ALL_DIRS_IN_PROJECT=()
+    SELECTED_STATUS_MAP=() 
+    EXPANDED_DIRS=()
+
+    # Obtener todos los archivos y directorios relativos a SELECTED_ROOT_FOLDER
+    # Excluir .git y otros directorios/archivos ocultos
+    local all_paths_raw=()
+    mapfile -t all_paths_raw < <(find . -not \( -path '*/.*' -o -name '.*' \) -print0 | sort -z | xargs -0 -n1 echo )
+
+    if [[ ${#all_paths_raw[@]} -eq 0 || ( ${#all_paths_raw[@]} -eq 1 && "${all_paths_raw[0]}" == "./." ) ]]; then
+         # El find . siempre devuelve al menos "." si el directorio existe
+         # Si solo devuelve "." o está vacío, no hay nada útil que procesar.
+        echo "No se encontraron archivos o directorios significativos (excluyendo ocultos) en '$SELECTED_ROOT_FOLDER'."
+        cd "$original_pwd_ps"
+        return 1
+    fi
+    
+    for path_raw in "${all_paths_raw[@]}"; do
+        local rel_path="${path_raw#./}" 
+        if [[ "$rel_path" == "." ]]; then continue; fi # Ignorar el directorio raíz en sí mismo para las listas
+
+        if [[ -d "$rel_path" ]]; then
+            ALL_DIRS_IN_PROJECT+=("$rel_path")
+        elif [[ -f "$rel_path" ]]; then
+            ALL_PROJECT_FILES+=("$rel_path")
+            SELECTED_STATUS_MAP["$rel_path"]=0 # Deseleccionado por defecto
+        fi
+    done
+
+    if [[ ${#ALL_PROJECT_FILES[@]} -eq 0 && ${#ALL_DIRS_IN_PROJECT[@]} -eq 0 ]]; then
+        echo "No se encontraron archivos o directorios (excluyendo ocultos y el propio raíz '.') en '$SELECTED_ROOT_FOLDER'."
+        cd "$original_pwd_ps"
+        return 1
+    fi
+
+    # Pre-calcular mapa de padre a hijos para la construcción eficiente del árbol
+    declare -A PARENT_TO_CHILDREN_MAP
+    PARENT_TO_CHILDREN_MAP["."]=""; # Para la raíz
+    for dir_path in "${ALL_DIRS_IN_PROJECT[@]}"; do
+        PARENT_TO_CHILDREN_MAP["$dir_path"]=""
+    done
+
+    for file_path in "${ALL_PROJECT_FILES[@]}"; do
+        parent_dir=$(dirname "$file_path")
+        entry_basename=$(basename "$file_path")
+        PARENT_TO_CHILDREN_MAP["$parent_dir"]+="$entry_basename:f "
+    done
+
+    for dir_path in "${ALL_DIRS_IN_PROJECT[@]}"; do
+        parent_dir=$(dirname "$dir_path")
+        entry_basename=$(basename "$dir_path")
+        PARENT_TO_CHILDREN_MAP["$parent_dir"]+="$entry_basename:d "
+    done
+    
+    for key in "${!PARENT_TO_CHILDREN_MAP[@]}"; do
+        local unsorted_children_str="${PARENT_TO_CHILDREN_MAP[$key]}"
+        local sorted_children_array=()
+        if [[ -n "$unsorted_children_str" ]]; then # Asegurar que no está vacío
+            mapfile -t sorted_children_array < <(echo "$unsorted_children_str" | tr ' ' '\n' | grep . | sort)
+        fi
+        PARENT_TO_CHILDREN_MAP["$key"]="${sorted_children_array[*]}"
+    done
+
+    local item_counter # Se reinicia en cada redibujado del bucle while
+    declare -a current_display_paths_ordered # Se reinicia en cada redibujado
+    declare -a current_display_lines_formatted # Se reinicia en cada redibujado
+
+    # Función local recursiva para construir la lista de visualización
+    build_recursive_display_list() {
+        local current_dir="$1" 
+        local base_indent="$2"
+
+        local children_str="${PARENT_TO_CHILDREN_MAP[$current_dir]}"
+        if [[ -z "$children_str" ]]; then return; fi
+        local -a children_array=($children_str) 
+        
+        local num_entries=${#children_array[@]}
+        for i in "${!children_array[@]}"; do
+            local child_entry="${children_array[$i]}" 
+            local entry_name="${child_entry%:*}"
+            local entry_type="${child_entry##*:}"
+            
+            local entry_path
+            if [[ "$current_dir" == "." ]]; then
+                entry_path="$entry_name"
+            else
+                entry_path="$current_dir/$entry_name"
+            fi
+
+            local is_last_entry=$(( i == num_entries - 1 ))
+            local branch_char="├──"
+            [[ "$is_last_entry" -eq 1 ]] && branch_char="└──"
+
+            ((item_counter++))
+            current_display_paths_ordered+=("$entry_path")
+
+            local display_line_prefix="${base_indent}${branch_char}"
+
+            if [[ "$entry_type" == "d" ]]; then 
+                local dir_status_char="[+]"
+                [[ -n "${EXPANDED_DIRS[$entry_path]}" ]] && dir_status_char="[-]"
+                current_display_lines_formatted+=("$(printf "%3d. %s %s 📁 %s/" "$item_counter" "$dir_status_char" "$display_line_prefix" "$entry_name")")
+                
+                if [[ -n "${EXPANDED_DIRS[$entry_path]}" ]]; then
+                    local next_indent_base="$base_indent"
+                    [[ "$is_last_entry" -eq 1 ]] && next_indent_base+="    " || next_indent_base+="│   "
+                    build_recursive_display_list "$entry_path" "$next_indent_base"
+                fi
+            elif [[ "$entry_type" == "f" ]]; then 
+                local file_status_char="[ ]"
+                [[ "${SELECTED_STATUS_MAP[$entry_path]}" -eq 1 ]] && file_status_char="[x]"
+                current_display_lines_formatted+=("$(printf "%3d. %s %s 📄 %s" "$item_counter" "$file_status_char" "$display_line_prefix" "$entry_name")")
+            fi
+        done
+    }
+
+    while true; do
+        clear
+        echo "Seleccione: (<Número>, 'a' todos, 'n' ninguno, 'e' expandir, 'c' colapsar, 'f' finalizar, 'q' salir)"
+        echo "Directorio raíz: $SELECTED_ROOT_FOLDER"
+        echo "--------------------------------------------------------------------------------"
+
+        item_counter=0
+        current_display_paths_ordered=()
+        current_display_lines_formatted=()
+
+        build_recursive_display_list "." "" 
+
+        if [[ ${#current_display_lines_formatted[@]} -eq 0 ]]; then
+            if [[ ${#ALL_PROJECT_FILES[@]} -eq 0 && ${#ALL_DIRS_IN_PROJECT[@]} -eq 0 ]]; then
+                echo "No hay archivos o directorios para mostrar en $SELECTED_ROOT_FOLDER."
+            else
+                echo "(Directorio raíz vacío o todos los subdirectorios están colapsados)"
+            fi
+        else
+            for line in "${current_display_lines_formatted[@]}"; do
+                echo "$line"
+            done
+        fi
+        echo "--------------------------------------------------------------------------------"
+        read -r -p "Opción: " choice
+
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+            if (( choice >= 1 && choice <= ${#current_display_paths_ordered[@]} )); then
+                local selected_idx=$((choice - 1))
+                local target_path="${current_display_paths_ordered[$selected_idx]}"
+                
+                # Determinar si es dir o file basado en si está en ALL_DIRS_IN_PROJECT
+                # o SELECTED_STATUS_MAP (que solo tiene archivos)
+                if [[ -n "${SELECTED_STATUS_MAP[$target_path]}" || -f "$target_path" ]]; then # Es un archivo
+                     # Verificar -f por si acaso el archivo existe pero no está en SELECTED_STATUS_MAP (no debería pasar)
+                    SELECTED_STATUS_MAP["$target_path"]=$((1 - SELECTED_STATUS_MAP["$target_path"]))
+                elif ( printf '%s\n' "${ALL_DIRS_IN_PROJECT[@]}" | grep -q -x "$target_path" ) || [[ -d "$target_path" ]]; then # Es un directorio
+                    if [[ -n "${EXPANDED_DIRS[$target_path]}" ]]; then
+                        unset EXPANDED_DIRS["$target_path"]
+                    else
+                        EXPANDED_DIRS["$target_path"]=1
+                    fi
+                else
+                    echo "Error: No se pudo determinar el tipo de '$target_path'." ; sleep 1
+                fi
+            else
+                echo "Número fuera de rango." ; sleep 1
+            fi
+        else
+            case "$choice" in
+                a|A) for f_path_key in "${!SELECTED_STATUS_MAP[@]}"; do SELECTED_STATUS_MAP["$f_path_key"]=1; done; echo "Todos los archivos seleccionados."; sleep 0.5;;
+                n|N) for f_path_key in "${!SELECTED_STATUS_MAP[@]}"; do SELECTED_STATUS_MAP["$f_path_key"]=0; done; echo "Ningún archivo seleccionado."; sleep 0.5;;
+                e|E) for d_path in "${ALL_DIRS_IN_PROJECT[@]}"; do EXPANDED_DIRS["$d_path"]=1; done; echo "Todos los directorios expandidos."; sleep 0.5;;
+                c|C) EXPANDED_DIRS=(); echo "Todos los directorios colapsados."; sleep 0.5;;
+                f|F)
+                    FINAL_SELECTED_FILES=()
+                    for f_path in "${!SELECTED_STATUS_MAP[@]}"; do
+                        if [[ "${SELECTED_STATUS_MAP[$f_path]}" -eq 1 ]]; then
+                            FINAL_SELECTED_FILES+=("$f_path")
+                        fi
+                    done
+                    # Ordenar FINAL_SELECTED_FILES alfabéticamente
+                    mapfile -t FINAL_SELECTED_FILES < <(printf "%s\n" "${FINAL_SELECTED_FILES[@]}" | sort)
+
+                    if [[ ${#FINAL_SELECTED_FILES[@]} -eq 0 ]]; then
+                        echo "No se seleccionó ningún archivo. ¿Continuar sin archivos? (s/N)"; read -r -n1 cnf; echo
+                        if ! [[ "$cnf" == "s" || "$cnf" == "S" ]]; then continue; fi
+                    fi
+                    echo "Selección finalizada."; cd "$original_pwd_ps"; return 0;;
+                q|Q) echo "¿Salir del script? (s/N)"; read -r -n1 cnf; echo; if [[ "$cnf" == "s" || "$cnf" == "S" ]]; then cd "$original_pwd_ps"; exit 0; fi;;
+                *) echo "Opción inválida."; sleep 1;;
+            esac
+        fi
+    done 
+    cd "$original_pwd_ps"
+    return 1 
+}
+
+
+generate_directory_tree_markdown() {
+    local output_file="$1"
+        
+    echo "Generando estructura de árbol..." >> "$output_file"
+    echo "\`\`\`text" >> "$output_file"
+
+    if [[ ${#FINAL_SELECTED_FILES[@]} -eq 0 ]]; then
+        echo "(Ningún archivo seleccionado para el árbol)" >> "$output_file"
+    elif command -v tree &> /dev/null; then
+        local temp_tree_dir
+        temp_tree_dir=$(mktemp -d)
+        (
+            cd "$SELECTED_ROOT_FOLDER" || exit 1 
+            # Usar trap dentro del subshell para que $temp_tree_dir sea relativo si es necesario, aunque mktemp da absoluto
+            # No, $temp_tree_dir ya es absoluto.
+            trap 'rm -rf "$temp_tree_dir"' EXIT HUP INT QUIT TERM
+
+            for file_rel_path in "${FINAL_SELECTED_FILES[@]}"; do
+                # Crear la estructura de directorios dentro de temp_tree_dir
+                # file_rel_path es relativo a SELECTED_ROOT_FOLDER
+                mkdir -p "$temp_tree_dir/$(dirname "$file_rel_path")"
+                touch "$temp_tree_dir/$file_rel_path" 
+            done
+            
+            (cd "$temp_tree_dir" && tree -L 10 --noreport --charset=UTF-8 .) | sed '1d' >> "$output_file" 
+            
+            rm -rf "$temp_tree_dir" 
+            trap - EXIT HUP INT QUIT TERM 
+        )
+    else
+        echo "Comando 'tree' no encontrado. Mostrando simulación de árbol." >> "$output_file"
+        declare -A printed_dirs_md
+        local last_printed_dir_components_str_md=""
+
+        # FINAL_SELECTED_FILES ya está ordenada desde process_file_selection
+        local sorted_final_files_md=("${FINAL_SELECTED_FILES[@]}")
+
+        for i in "${!sorted_final_files_md[@]}"; do
+            local file_rel_path="${sorted_final_files_md[$i]}"
+            local current_file_dir_md
+            current_file_dir_md=$(dirname "$file_rel_path")
+            [[ "$current_file_dir_md" == "." ]] && current_file_dir_md=""
+
+            local base_name_md
+            base_name_md=$(basename "$file_rel_path")
+
+            if [[ "$current_file_dir_md" != "$last_printed_dir_components_str_md" ]]; then
+                IFS='/' read -r -a current_dir_parts_md <<< "$current_file_dir_md"
+                if [[ "$current_file_dir_md" == "" ]]; then current_dir_parts_md=(); fi
+
+                local depth_md=0
+                for depth_md in $(seq 0 $((${#current_dir_parts_md[@]} -1 )) ); do
+                    local partial_path_to_check_md=""
+                    for k_md in $(seq 0 "$depth_md"); do
+                        partial_path_to_check_md+="${current_dir_parts_md[$k_md]}"
+                        if [[ $k_md -lt $depth_md ]]; then partial_path_to_check_md+="/"; fi
+                    done
+
+                    if [[ -z "${printed_dirs_md[$partial_path_to_check_md]}" ]]; then
+                        local header_indent_md=""
+                        for _ in $(seq 1 "$depth_md"); do header_indent_md+="│   "; done
+                        # Para la simulación del árbol, asumimos que todos los directorios intermedios son ├──
+                        # Podríamos mejorar esto si tuviéramos la lista de todos los directorios que *contienen* archivos seleccionados.
+                        echo "${header_indent_md}├── ${current_dir_parts_md[$depth_md]}/" >> "$output_file"
+                        printed_dirs_md["$partial_path_to_check_md"]=1
+                    fi
+                done
+                last_printed_dir_components_str_md="$current_file_dir_md"
+            fi
+
+            local file_indent_str_md=""
+            IFS='/' read -r -a dir_parts_for_file_md <<< "$current_file_dir_md"
+            if [[ "$current_file_dir_md" == "" ]]; then dir_parts_for_file_md=(); fi
+            for _ in $(seq 1 "${#dir_parts_for_file_md[@]}"); do file_indent_str_md+="│   "; done
+            
+            local branch_char_md="├──"
+            local is_last_simulated=true
+            if [[ $((i + 1)) -lt ${#sorted_final_files_md[@]} ]]; then
+                local next_file_dir_simulated
+                next_file_dir_simulated=$(dirname "${sorted_final_files_md[$((i + 1))]}")
+                [[ "$next_file_dir_simulated" == "." ]] && next_file_dir_simulated=""
+                if [[ "$next_file_dir_simulated" == "$current_file_dir_md" ]]; then
+                    is_last_simulated=false
+                fi
+            fi
+
+            if $is_last_simulated && [[ $((i + 1)) -eq ${#sorted_final_files_md[@]} ]]; then # Último archivo general
+                 branch_char_md="└──"
+            elif $is_last_simulated; then # Último en su directorio, pero no el último general
+                 branch_char_md="└──"
+            fi
+
+
+            echo "${file_indent_str_md}${branch_char_md} ${base_name_md}" >> "$output_file"
+        done
+    fi
+    echo "\`\`\`" >> "$output_file"
+    echo "" >> "$output_file"
+}
+
+export_content_to_markdown() {
+    local output_filename
+    local default_name="export_$(basename "$SELECTED_ROOT_FOLDER")_$(date +%Y%m%d_%H%M).md"
+    
+    read -r -p "Ingrese el nombre del archivo Markdown de salida (default: ${default_name}): " output_filename
+    output_filename="${output_filename:-$default_name}"
+
+    if [[ "$output_filename" != /* && "$output_filename" != ~* ]]; then
+        output_filename="$(pwd)/$output_filename" 
+    elif [[ "$output_filename" == ~* ]]; then
+        output_filename="${HOME}${output_filename#\~}"
+    fi
+    
+    local output_dir
+    output_dir=$(dirname "$output_filename")
+    if [[ ! -d "$output_dir" ]]; then
+        mkdir -p "$output_dir" || { echo "Error: No se pudo crear el directorio de salida '$output_dir'."; return 1; }
+    fi
+
+    echo "Generando archivo Markdown en: $output_filename"
+
+    echo "# Exportación de Código: $(basename "$SELECTED_ROOT_FOLDER")" > "$output_filename"
+    echo "Ruta raíz del proyecto: \`$SELECTED_ROOT_FOLDER\`" >> "$output_filename"
+    echo "Fecha de exportación: $(date)" >> "$output_filename"
+    echo "" >> "$output_filename"
+
+    echo "## Estructura de Archivos (Árbol)" >> "$output_filename"
+    generate_directory_tree_markdown "$output_filename"
+
+    echo "## Lista de Archivos Incluidos" >> "$output_filename"
+    if [[ ${#FINAL_SELECTED_FILES[@]} -gt 0 ]]; then
+        for file_rel_path in "${FINAL_SELECTED_FILES[@]}"; do
+            echo "* \`$file_rel_path\`" >> "$output_filename"
+        done
+    else
+        echo "Ningún archivo fue seleccionado para incluir." >> "$output_filename"
+    fi
+    echo "" >> "$output_filename"
+
+    echo "## Contenido de los Archivos" >> "$output_filename"
+    if [[ ${#FINAL_SELECTED_FILES[@]} -gt 0 ]]; then
+        local original_pwd_export
+        original_pwd_export=$(pwd)
+        cd "$SELECTED_ROOT_FOLDER" || { echo "Error: No se pudo acceder a $SELECTED_ROOT_FOLDER"; exit 1; }
+
+        for file_rel_path in "${FINAL_SELECTED_FILES[@]}"; do
+            echo "### \`$file_rel_path\`" >> "$output_filename"
+            local lang
+            lang=$(map_extension_to_language "$file_rel_path")
+            echo "\`\`\`${lang}" >> "$output_filename"
+            
+            if [[ -f "$file_rel_path" && -r "$file_rel_path" ]]; then
+                cat "$file_rel_path" >> "$output_filename"
+            else
+                echo "Error: No se pudo leer '$file_rel_path'" >> "$output_filename"
+            fi
+            
+            echo "\`\`\`" >> "$output_filename"
+            echo "" >> "$output_filename"
+        done
+        cd "$original_pwd_export"
+    else
+        echo "No hay contenido de archivos para exportar." >> "$output_filename"
+    fi
+
+    echo "----------------------------------------"
+    echo "¡Exportación completada!"
+    echo "Archivo Markdown generado: $output_filename"
+    echo "----------------------------------------"
+    return 0
+}
+
+main() {
+    local initial_script_dir 
+    initial_script_dir=$(pwd)
+
+    echo "===== Herramienta de Exportación de Código a Markdown ====="
+    
+    SELECTED_ROOT_FOLDER=$(pwd)
+    echo "Operando sobre el directorio actual como carpeta raíz del proyecto:"
+    echo "$SELECTED_ROOT_FOLDER"
+    echo "-----------------------------------------------------"
+    
+    if ! process_file_selection; then
+        # Mensajes de error o cancelación ya se manejan dentro de process_file_selection o por su valor de retorno
+        # Si retorna false (1) y FINAL_SELECTED_FILES está vacío, es probable que no se encontraran archivos o se canceló
+        # sin seleccionar nada.
+        if [[ ${#FINAL_SELECTED_FILES[@]} -eq 0 ]]; then
+             echo "Proceso de selección de archivos fallido o cancelado sin seleccionar archivos."
+        fi
+        exit 1
+    fi
+
+    if [[ ${#FINAL_SELECTED_FILES[@]} -eq 0 ]]; then
+        echo "No se seleccionaron archivos para exportar. Saliendo."
+    else
+        if ! export_content_to_markdown; then
+             echo "Hubo un error durante la exportación a Markdown."
+             exit 1
+        fi
+    fi
+    
+    echo "Script finalizado."
+}
+
+main```
+
+### `js/control-logic.js`
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+    const MAX_NUMBER = 99;
+    let currentGameState = {
+        eventName: "Gran Bingo Solidario",
+        eventDescription: "¡Participa y Gana Fabulosos Premios!",
+        eventLogoUrl: null,
+        prizes: [ // IDs deben ser únicos y consistentes
+            { id: 'line1', type: 'line', defaultName: "Línea 1", customName: "", description: "", imageUrl: null, enabled: true, claimed: false, winnerName: null, winnerPhotoUrl: null },
+            { id: 'line2', type: 'line', defaultName: "Línea 2", customName: "", description: "", imageUrl: null, enabled: false, claimed: false, winnerName: null, winnerPhotoUrl: null },
+            { id: 'line3', type: 'line', defaultName: "Línea 3", customName: "", description: "", imageUrl: null, enabled: false, claimed: false, winnerName: null, winnerPhotoUrl: null },
+            { id: 'bingo', type: 'bingo', defaultName: "Bingo Completo", customName: "", description: "", imageUrl: null, enabled: true, claimed: false, winnerName: null, winnerPhotoUrl: null }
+        ],
+        currentPlayMessage: "",
+        currentBall: '--',
+        drawnNumbers: [],
+        availableNumbers: Array.from({ length: MAX_NUMBER + 1 }, (_, i) => i),
+        gameActive: true,
+        triggerConfetti: false, // Para el confeti general de BINGO final
+        verifyingPrizeId: null,
+        displayStatus: { mainMessage: "", winnerAnnouncement: null } // Para mensajes en display
+    };
+
+    // --- DOM Elements ---
+    const eventNameInput = document.getElementById('eventName');
+    const eventDescriptionInput = document.getElementById('eventDescription');
+    const eventLogoInput = document.getElementById('eventLogo');
+    const logoPreview = document.getElementById('logoPreview');
+    const logoPreviewContainer = document.getElementById('logoPreviewContainer');
+    const saveMainConfigBtn = document.getElementById('saveMainConfigBtn');
+
+    const tabsContainer = document.getElementById('prizeTabsContainer');
+    const linePrizeTabsDiv = document.getElementById('linePrizeTabs');
+    const linePrizeContentsDiv = document.getElementById('linePrizeContents');
+    const bingoPrizeConfigDiv = document.getElementById('bingoPrizeConfigContainer');
+    const savePrizesConfigBtn = document.getElementById('savePrizesConfigBtn');
+    
+    const currentPlayMessageDisplay = document.getElementById('currentPlayMessageDisplay');
+    const drawBallBtn = document.getElementById('drawBallBtn');
+    const announcePrizeCheckBtn = document.getElementById('announcePrizeCheckBtn');
+    const currentPrizeToVerifyTextSpan = document.getElementById('currentPrizeToVerifyText');
+    const resetGameBtn = document.getElementById('resetGameBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    
+    const winnerVerificationSection = document.getElementById('winnerVerificationSection');
+    const verifyingPrizeNameSpan = document.getElementById('verifyingPrizeNameSpan');
+    const winnerNameInput = document.getElementById('winnerNameInput');
+    const winnerPhotoInput = document.getElementById('winnerPhotoInput');
+    const winnerPhotoPreview = document.getElementById('winnerPhotoPreview');
+    const winnerPhotoPreviewContainer = document.getElementById('winnerPhotoPreviewContainer');
+    const confirmAndAnnounceWinnerBtn = document.getElementById('confirmAndAnnounceWinnerBtn');
+    const cancelVerificationBtn = document.getElementById('cancelVerificationBtn');
+
+    let tempWinnerPhotoUrl = null;
+
+    // --- Utility Functions ---
+    function updateLocalStorage() {
+        localStorage.setItem('bingoGameState', JSON.stringify(currentGameState));
+        console.log("Estado guardado en LS:", JSON.parse(JSON.stringify(currentGameState)));
+    }
+
+    function loadFromLocalStorage() {
+        const savedState = localStorage.getItem('bingoGameState');
+        if (savedState) {
+            const parsedState = JSON.parse(savedState);
+            currentGameState.eventName = parsedState.eventName || currentGameState.eventName;
+            currentGameState.eventDescription = parsedState.eventDescription || currentGameState.eventDescription;
+            currentGameState.eventLogoUrl = parsedState.eventLogoUrl || null;
+
+            if (parsedState.prizes && parsedState.prizes.length === currentGameState.prizes.length) {
+                currentGameState.prizes = currentGameState.prizes.map((defaultPrize, index) => {
+                    const savedPrizeData = parsedState.prizes.find(sp => sp.id === defaultPrize.id);
+                    return {
+                        ...defaultPrize,
+                        ...(savedPrizeData || {}),
+                    };
+                });
+            }
+            
+            currentGameState.drawnNumbers = parsedState.drawnNumbers || [];
+            currentGameState.availableNumbers = Array.from({ length: MAX_NUMBER + 1 }, (_, i) => i)
+                .filter(n => !currentGameState.drawnNumbers.includes(n));
+            currentGameState.gameActive = parsedState.gameActive !== undefined ? parsedState.gameActive : true;
+            currentGameState.currentBall = parsedState.currentBall || '--';
+        }
+        
+        eventNameInput.value = currentGameState.eventName;
+        eventDescriptionInput.value = currentGameState.eventDescription;
+        if (currentGameState.eventLogoUrl) {
+            logoPreview.src = currentGameState.eventLogoUrl;
+            logoPreviewContainer.classList.remove('hidden');
+        }
+        renderPrizesForm();
+        updateGameStatusDisplay();
+    }
+
+    function handleImageUpload(fileInput, previewElement, previewContainer, callback) {
+        const file = fileInput.files[0];
+        previewElement.src = "#"; // Reset preview
+        if (previewContainer) previewContainer.classList.add('hidden');
+
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) { alert("Imagen demasiado grande (máx 2MB)."); fileInput.value = ""; callback(null); return; }
+            if (!['image/jpeg', 'image/png'].includes(file.type)) { alert("Formato no válido (solo JPG/PNG)."); fileInput.value = ""; callback(null); return; }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewElement.src = e.target.result;
+                if (previewContainer) previewContainer.classList.remove('hidden');
+                callback(e.target.result);
+            }
+            reader.readAsDataURL(file);
+        } else {
+            callback(null); // No file selected or cleared
+        }
+    }
+            
+    // --- Event Config Logic ---
+    eventLogoInput.addEventListener('change', () => handleImageUpload(eventLogoInput, logoPreview, logoPreviewContainer, (dataUrl) => {
+        currentGameState.eventLogoUrl = dataUrl;
+        // No guardar aquí, se hace con el botón
+    }));
+
+    saveMainConfigBtn.addEventListener('click', () => {
+        currentGameState.eventName = eventNameInput.value.trim();
+        currentGameState.eventDescription = eventDescriptionInput.value.trim();
+        // eventLogoUrl ya está en currentGameState por el 'change' handler
+        updateLocalStorage();
+        alert("Configuración Principal Guardada.");
+    });
+
+    // --- Prizes Config Logic ---
+    function createPrizeFormElements(prize, index, isBingo = false) {
+        const prizeFormHTML = `
+            ${isBingo ? '' : `<div class="form-group">
+                <input type="checkbox" id="enablePrize_${prize.id}" data-index="${index}" ${prize.enabled ? 'checked' : ''}>
+                <label for="enablePrize_${prize.id}" style="font-weight: normal;">Habilitar este premio de línea</label>
+            </div>`}
+            <div class="form-group">
+                <label for="prizeName_${prize.id}">Nombre Personalizado ${isBingo ? '(Requerido)' : '(Opcional)'}:</label>
+                <input type="text" id="prizeName_${prize.id}" data-index="${index}" value="${prize.customName || ''}" placeholder="${prize.defaultName}">
+            </div>
+            <div class="form-group">
+                <label for="prizeDesc_${prize.id}">Descripción del Premio:</label>
+                <textarea id="prizeDesc_${prize.id}" data-index="${index}" placeholder="Ej: Contenido del premio...">${prize.description || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="prizeImg_${prize.id}">Imagen del Premio (opcional):</label>
+                <input type="file" id="prizeImg_${prize.id}" data-index="${index}" accept="image/jpeg, image/png">
+                <div id="prizeImgPreviewContainer_${prize.id}" class="image-preview-container ${prize.imageUrl ? '' : 'hidden'}">
+                    <img id="prizeImgPreview_${prize.id}" src="${prize.imageUrl || '#'}" alt="Vista Premio" class="image-preview">
+                </div>
+            </div>
+            ${prize.claimed ? `<p class="prize-status"><strong>Entregado a:</strong> ${prize.winnerName || 'N/A'}</p>` : ''}
+        `;
+        return prizeFormHTML;
+    }
+    
+    function renderPrizesForm() {
+        linePrizeTabsDiv.innerHTML = '';
+        linePrizeContentsDiv.innerHTML = '';
+        bingoPrizeConfigDiv.innerHTML = '';
+
+        currentGameState.prizes.forEach((prize, index) => {
+            if (prize.type === 'line') {
+                // Crear botón de pestaña
+                const tabButton = document.createElement('button');
+                tabButton.classList.add('tab-button');
+                tabButton.dataset.tabTarget = `#prizeContent_${prize.id}`;
+                tabButton.textContent = prize.customName || prize.defaultName;
+                if (index === 0) tabButton.classList.add('active'); // Activar la primera pestaña por defecto
+                linePrizeTabsDiv.appendChild(tabButton);
+
+                // Crear contenido de pestaña
+                const tabContent = document.createElement('div');
+                tabContent.classList.add('tab-content');
+                tabContent.id = `prizeContent_${prize.id}`;
+                if (index === 0) tabContent.classList.add('active');
+                
+                const prizeItemDiv = document.createElement('div');
+                prizeItemDiv.classList.add('prize-item');
+                prizeItemDiv.innerHTML = createPrizeFormElements(prize, index);
+                tabContent.appendChild(prizeItemDiv);
+                linePrizeContentsDiv.appendChild(tabContent);
+
+            } else if (prize.type === 'bingo') {
+                const bingoItemDiv = document.createElement('div');
+                bingoItemDiv.classList.add('prize-item');
+                bingoItemDiv.innerHTML = `<h3>Configuración Premio Bingo</h3>` + createPrizeFormElements(prize, index, true);
+                bingoPrizeConfigDiv.appendChild(bingoItemDiv);
+            }
+        });
+
+        // Agregar listeners a los elementos recién creados
+        currentGameState.prizes.forEach((prize, index) => {
+            const enableCheckbox = document.getElementById(`enablePrize_${prize.id}`);
+            const nameInput = document.getElementById(`prizeName_${prize.id}`);
+            const descTextarea = document.getElementById(`prizeDesc_${prize.id}`);
+            const imgInput = document.getElementById(`prizeImg_${prize.id}`);
+            const imgPreview = document.getElementById(`prizeImgPreview_${prize.id}`);
+            const imgPreviewContainer = document.getElementById(`prizeImgPreviewContainer_${prize.id}`);
+
+            if(enableCheckbox) { // No existe para BINGO
+                enableCheckbox.addEventListener('change', (e) => {
+                    currentGameState.prizes[index].enabled = e.target.checked;
+                    updateGameStatusDisplay();
+                });
+            }
+            if(nameInput) {
+                nameInput.addEventListener('input', (e) => {
+                    currentGameState.prizes[index].customName = e.target.value;
+                    if (prize.type === 'line') { // Actualizar texto de la pestaña
+                        const tabButton = linePrizeTabsDiv.querySelector(`[data-tab-target="#prizeContent_${prize.id}"]`);
+                        if (tabButton) tabButton.textContent = e.target.value || prize.defaultName;
+                    }
+                    updateGameStatusDisplay();
+                });
+            }
+            if(descTextarea) {
+                descTextarea.addEventListener('input', (e) => { currentGameState.prizes[index].description = e.target.value; });
+            }
+            if(imgInput) {
+                imgInput.addEventListener('change', () => handleImageUpload(imgInput, imgPreview, imgPreviewContainer, (dataUrl) => {
+                    currentGameState.prizes[index].imageUrl = dataUrl;
+                }));
+            }
+        });
+
+        // Manejadores para los botones de las pestañas
+        const tabButtons = linePrizeTabsDiv.querySelectorAll('.tab-button');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                linePrizeContentsDiv.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                const targetContent = document.querySelector(button.dataset.tabTarget);
+                if(targetContent) targetContent.classList.add('active');
+            });
+        });
+    }
+    
+    savePrizesConfigBtn.addEventListener('click', () => {
+        // Los datos ya se actualizan en currentGameState con los eventos 'input' y 'change'
+        updateLocalStorage();
+        alert("Configuración de Premios Guardada.");
+    });
+
+    // --- Game Control Logic ---
+    function getCurrentActivePrize() {
+        return currentGameState.prizes.find(p => p.enabled && !p.claimed);
+    }
+
+    function updateGameStatusDisplay() {
+        const activePrize = getCurrentActivePrize();
+        if (activePrize) {
+            const prizeName = activePrize.customName || activePrize.defaultName;
+            currentGameState.currentPlayMessage = `Jugando por: ${prizeName}`;
+            currentPlayMessageDisplay.value = prizeName;
+            currentPrizeToVerifyTextSpan.textContent = prizeName;
+        } else {
+            currentGameState.currentPlayMessage = "Todos los premios entregados o juego no iniciado.";
+            currentPlayMessageDisplay.value = "N/A";
+            currentPrizeToVerifyTextSpan.textContent = "Premio";
+        }
+        drawBallBtn.disabled = !currentGameState.gameActive || currentGameState.availableNumbers.length === 0 || !activePrize;
+        announcePrizeCheckBtn.disabled = !activePrize || currentGameState.drawnNumbers.length === 0;
+        exportPdfBtn.disabled = currentGameState.prizes.every(p => !p.claimed); // Habilitar si al menos un premio fue reclamado
+    }
+
+    function initializeGameLogic() {
+        currentGameState.availableNumbers = Array.from({ length: MAX_NUMBER + 1 }, (_, i) => i);
+        currentGameState.drawnNumbers = [];
+        currentGameState.gameActive = true;
+        currentGameState.currentBall = '--';
+        currentGameState.triggerConfetti = false;
+        currentGameState.verifyingPrizeId = null;
+        currentGameState.displayStatus = { mainMessage: "", winnerAnnouncement: null };
+        currentGameState.prizes.forEach(p => { // Resetear estado de premios
+            p.claimed = false; p.winnerName = null; p.winnerPhotoUrl = null;
+            // No resetear p.enabled, p.customName, p.description, p.imageUrl aquí, son parte de la config.
+        });
+        
+        winnerVerificationSection.classList.add('hidden');
+        renderPrizesForm(); // Actualizar visualmente los estados de premios (ej. quitar "Entregado a")
+        updateGameStatusDisplay();
+        
+        // Informar al display que resetee
+        const tempStateForReset = { ...currentGameState, gameReset: true };
+        localStorage.setItem('bingoGameState', JSON.stringify(tempStateForReset));
+        setTimeout(() => { 
+            delete tempStateForReset.gameReset; // Limpiar bandera para futuras actualizaciones
+            localStorage.setItem('bingoGameState', JSON.stringify(tempStateForReset));
+        }, 200);
+        console.log("Juego Reiniciado");
+    }
+    resetGameBtn.addEventListener('click', initializeGameLogic);
+
+    drawBallBtn.addEventListener('click', () => {
+        if (!currentGameState.gameActive || currentGameState.availableNumbers.length === 0) {
+            currentGameState.displayStatus.mainMessage = currentGameState.availableNumbers.length === 0 ? "¡Todas las bolillas sacadas!" : "Juego pausado o finalizado.";
+            updateLocalStorage();
+            return;
+        }
+        const randomIndex = Math.floor(Math.random() * currentGameState.availableNumbers.length);
+        const ball = currentGameState.availableNumbers.splice(randomIndex, 1)[0];
+        currentGameState.drawnNumbers.push(ball);
+        currentGameState.currentBall = ball;
+        currentGameState.displayStatus = { mainMessage: "", winnerAnnouncement: null }; // Limpiar mensajes de display
+
+        if (currentGameState.availableNumbers.length === 0) {
+            currentGameState.gameActive = false;
+            currentGameState.displayStatus.mainMessage = "¡Todas las bolillas han sido sacadas!";
+        }
+        updateGameStatusDisplay();
+        updateLocalStorage();
+    });
+
+    // --- Winner Verification Logic ---
+    winnerPhotoInput.addEventListener('change', () => handleImageUpload(winnerPhotoInput, winnerPhotoPreview, winnerPhotoPreviewContainer, (dataUrl) => {
+        tempWinnerPhotoUrl = dataUrl; // Para el ganador actual
+    }));
+    
+    announcePrizeCheckBtn.addEventListener('click', () => {
+        const prizeToVerify = getCurrentActivePrize();
+        if (prizeToVerify) {
+            currentGameState.verifyingPrizeId = prizeToVerify.id;
+            const prizeName = prizeToVerify.customName || prizeToVerify.defaultName;
+            verifyingPrizeNameSpan.textContent = prizeName;
+            winnerNameInput.value = "";
+            winnerPhotoInput.value = ""; 
+            tempWinnerPhotoUrl = null; 
+            winnerPhotoPreview.src = "#";
+            winnerPhotoPreviewContainer.classList.add('hidden');
+            
+            winnerVerificationSection.classList.remove('hidden');
+            drawBallBtn.disabled = true; // Pausar sacar bolillas
+            // currentGameState.gameActive = false; // No completamente, solo pausar extracción.
+            currentGameState.displayStatus = { mainMessage: `Verificando cartón para: ${prizeName}...`, winnerAnnouncement: null };
+            updateLocalStorage();
+        } else {
+            alert("No hay premios activos para verificar o el juego no ha comenzado.");
+        }
+    });
+
+    cancelVerificationBtn.addEventListener('click', () => {
+        winnerVerificationSection.classList.add('hidden');
+        currentGameState.verifyingPrizeId = null;
+        // currentGameState.gameActive = true; // Reanudar si estaba pausado.
+        currentGameState.displayStatus = { mainMessage: "", winnerAnnouncement: null }; // Limpiar mensaje display
+        updateGameStatusDisplay(); // Esto reactivará drawBallBtn si es apropiado
+        updateLocalStorage();
+    });
+
+    confirmAndAnnounceWinnerBtn.addEventListener('click', () => {
+        const prizeId = currentGameState.verifyingPrizeId;
+        const prizeIndex = currentGameState.prizes.findIndex(p => p.id === prizeId);
+        if (prizeIndex === -1) { alert("Error: Premio no encontrado."); return; }
+
+        const winnerDisplayName = winnerNameInput.value.trim();
+        if (!winnerDisplayName) { alert("Por favor, ingresa el nombre del ganador."); return; }
+
+        currentGameState.prizes[prizeIndex].claimed = true;
+        currentGameState.prizes[prizeIndex].winnerName = winnerDisplayName;
+        currentGameState.prizes[prizeIndex].winnerPhotoUrl = tempWinnerPhotoUrl;
+
+        currentGameState.displayStatus.winnerAnnouncement = {
+            prizeName: currentGameState.prizes[prizeIndex].customName || currentGameState.prizes[prizeIndex].defaultName,
+            prizeDescription: currentGameState.prizes[prizeIndex].description,
+            prizeImageUrl: currentGameState.prizes[prizeIndex].imageUrl, // Imagen del premio
+            winnerName: winnerDisplayName,
+            winnerPhotoUrl: tempWinnerPhotoUrl, // Foto del ganador
+            isBingo: prizeId === 'bingo'
+        };
+        currentGameState.displayStatus.mainMessage = ""; // Limpiar mensaje de verificación
+
+        if (prizeId === 'bingo') {
+            currentGameState.gameActive = false; // Bingo termina el juego
+            currentGameState.triggerConfetti = true; // Activar confeti general para bingo
+        } else {
+            // Para líneas, el juego puede continuar si hay más premios
+            const remainingActivePrizes = currentGameState.prizes.some(p => p.enabled && !p.claimed);
+            currentGameState.gameActive = remainingActivePrizes;
+        }
+        
+        winnerVerificationSection.classList.add('hidden');
+        currentGameState.verifyingPrizeId = null;
+        tempWinnerPhotoUrl = null; 
+        
+        renderPrizesForm(); 
+        updateGameStatusDisplay();
+        updateLocalStorage();
+    });
+
+    // --- PDF Export Logic ---
+    exportPdfBtn.addEventListener('click', async () => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        let yPosition = 15;
+        const pageHeight = pdf.internal.pageSize.height;
+        const pageWidth = pdf.internal.pageSize.width;
+        const margin = 15;
+
+        function addText(text, x, y, size = 10, style = 'normal') {
+            pdf.setFontSize(size);
+            pdf.setFont('helvetica', style);
+            pdf.text(text, x, y);
+        }
+        
+        function checkNewPage(neededHeight) {
+            if (yPosition + neededHeight > pageHeight - margin) {
+                pdf.addPage();
+                yPosition = margin;
+            }
+        }
+
+        addText(`Reporte de Jugada: ${currentGameState.eventName}`, pageWidth / 2, yPosition, 18, 'bold', {align: 'center'});
+        yPosition += 12;
+        addText(`Descripción: ${currentGameState.eventDescription}`, margin, yPosition, 10);
+        yPosition += 8;
+        addText(`Fecha de Exportación: ${new Date().toLocaleString()}`, margin, yPosition, 8, 'italic');
+        yPosition += 15;
+
+        if (currentGameState.eventLogoUrl) {
+            try {
+                checkNewPage(50); // Approx height for logo
+                await pdf.addImage(currentGameState.eventLogoUrl, 'JPEG', margin, yPosition, 40, 40);
+                yPosition += 50; // Espacio después del logo
+            } catch (e) { console.error("Error añadiendo logo:", e); yPosition +=10; /* Espacio de fallback */ }
+        }
+
+        addText("Ganadores de Premios:", margin, yPosition, 14, 'bold');
+        yPosition += 10;
+
+        for (const prize of currentGameState.prizes) {
+            if (prize.claimed) {
+                checkNewPage(80); // Estimado para un premio con imágenes
+                const prizeDisplayName = prize.customName || prize.defaultName;
+                addText(`Premio: ${prizeDisplayName}`, margin, yPosition, 12, 'bold');
+                yPosition += 7;
+                addText(`Ganador: ${prize.winnerName || 'N/A'}`, margin + 5, yPosition, 10);
+                yPosition += 7;
+                if(prize.description) {
+                    addText(`Descripción Premio: ${prize.description}`, margin + 5, yPosition, 9);
+                    yPosition += 7;
+                }
+
+                let imageX = margin + 5;
+                if (prize.imageUrl) {
+                    try {
+                        checkNewPage(45);
+                        addText('Imagen del Premio:', imageX, yPosition, 8, 'italic'); yPosition +=5;
+                        await pdf.addImage(prize.imageUrl, 'JPEG', imageX, yPosition, 30, 30);
+                        imageX += 40; // Mover para la siguiente imagen si hay
+                    } catch (e) { console.error("Error añadiendo imagen premio:", e); }
+                }
+                if (prize.winnerPhotoUrl) {
+                    try {
+                        checkNewPage(45);
+                        addText('Foto del Ganador:', imageX, yPosition - (prize.imageUrl ? 0 : 5) /*Ajuste si no hubo img previa*/ , 8, 'italic'); 
+                        if(!prize.imageUrl) yPosition +=5; //Solo si no hubo otra img antes
+                        await pdf.addImage(prize.winnerPhotoUrl, 'JPEG', imageX, yPosition, 30, 30);
+                    } catch (e) { console.error("Error añadiendo foto ganador:", e); }
+                }
+                yPosition += 40; // Espacio después de las imágenes o del texto del ganador
+                yPosition += 5; // Separador entre premios
+            }
+        }
+        
+        checkNewPage(20);
+        addText("Números Cantados (" + currentGameState.drawnNumbers.length + "):", margin, yPosition, 12, 'bold');
+        yPosition += 8;
+
+        const numbersPerPage = 80; // Aprox.
+        let numbersString = currentGameState.drawnNumbers.join(', ');
+        let lines = pdf.splitTextToSize(numbersString, pageWidth - 2 * margin);
+        
+        checkNewPage(lines.length * 5); // 5 es aprox altura de linea
+        pdf.setFontSize(10);
+        pdf.text(lines, margin, yPosition);
+
+        pdf.save(`Reporte_Bingo_${currentGameState.eventName.replace(/\s+/g, '_')}.pdf`);
+    });
+
+
+    // --- Inicialización ---
+    loadFromLocalStorage(); // Cargar estado previo
+    // Si no hay estado, los valores por defecto de currentGameState se usarán para la primera renderización.
+});```
+
+### `js/display-logic.js`
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+    const MAX_NUMBER = 99;
+    // --- DOM Elements ---
+    const bodyEl = document.body;
+    const currentBallEl = document.getElementById('currentBallDisplay');
+    const masterBoardEl = document.getElementById('masterBoardDisplay');
+    const drawnBallsHistoryEl = document.getElementById('drawnBallsHistoryDisplay');
+    const eventNameEl = document.getElementById('eventNameDisplay');
+    const eventDescriptionEl = document.getElementById('eventDescriptionDisplay');
+    const eventLogoEl = document.getElementById('eventLogoDisplay');
+    const currentPlayEl = document.getElementById('currentPlayDisplay');
+
+    const overlayContainerEl = document.getElementById('overlayMessageContainer');
+    const mainDisplayMessageEl = document.getElementById('mainDisplayMessage');
+    const winnerBoxEl = document.getElementById('winnerAnnouncementBox');
+    const announcedPrizeNameEl = document.getElementById('announcedPrizeName');
+    const announcedPrizeDescriptionEl = document.getElementById('announcedPrizeDescription');
+    const announcedWinnerNameEl = document.getElementById('announcedWinnerName');
+    const announcedPrizeImageEl = document.getElementById('announcedPrizeImage'); // Imagen del premio
+    const announcedWinnerPhotoEl = document.getElementById('announcedWinnerPhoto'); // Foto del ganador
+
+    let lastBallAnimated = null;
+    let confettiInterval = null; // Para controlar el confeti continuo
+
+    // --- Core Display Functions ---
+    function createMasterBoard() {
+        masterBoardEl.innerHTML = ''; // Limpiar tablero
+        for (let i = 0; i <= MAX_NUMBER; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('master-board-cell-display');
+            cell.textContent = i < 10 ? `0${i}` : i.toString();
+            cell.dataset.number = i.toString();
+            masterBoardEl.appendChild(cell);
+        }
+    }
+    
+    function updateDisplay(gameState) {
+        // Actualizar información del evento
+        eventNameEl.textContent = gameState.eventName || "Bingo";
+        eventDescriptionEl.textContent = gameState.eventDescription || "";
+        if (gameState.eventLogoUrl) {
+            eventLogoEl.src = gameState.eventLogoUrl;
+            eventLogoEl.style.display = 'block';
+        } else {
+            eventLogoEl.style.display = 'none';
+        }
+        currentPlayEl.textContent = gameState.currentPlayMessage || "Cargando...";
+
+        // Si es un reseteo completo del juego
+        if (gameState.gameReset) {
+            currentBallEl.textContent = '--';
+            drawnBallsHistoryEl.innerHTML = '';
+            createMasterBoard(); // Recrea el tablero desde cero
+            lastBallAnimated = null;
+            stopContinuousConfetti();
+            overlayContainerEl.classList.remove('active');
+            mainDisplayMessageEl.textContent = "";
+            winnerBoxEl.style.display = 'none';
+            bodyEl.classList.remove('bingo-celebration');
+            console.log("Display reseteado.");
+            return;
+        }
+
+        // Actualizar bolilla actual
+        const ballText = gameState.currentBall === null || gameState.currentBall === "" ? "--" : 
+                         (typeof gameState.currentBall === 'number' && gameState.currentBall < 10 ? `0${gameState.currentBall}` : gameState.currentBall.toString());
+        currentBallEl.textContent = ballText;
+        if (ballText !== '--' && ballText !== "FIN" && ballText !== lastBallAnimated) {
+            currentBallEl.classList.remove('ball-pop-animation');
+            void currentBallEl.offsetWidth; // Trigger reflow
+            currentBallEl.classList.add('ball-pop-animation');
+            lastBallAnimated = ballText;
+        }
+
+        // Actualizar historial y tablero maestro
+        if (gameState.drawnNumbers && Array.isArray(gameState.drawnNumbers)) {
+            drawnBallsHistoryEl.innerHTML = '';
+            gameState.drawnNumbers.slice().reverse().forEach(ball => {
+                const ballItem = document.createElement('span');
+                ballItem.classList.add('drawn-ball-history-item-display');
+                ballItem.textContent = ball < 10 ? `0${ball}` : ball.toString();
+                drawnBallsHistoryEl.appendChild(ballItem);
+            });
+            drawnBallsHistoryEl.scrollTop = 0; 
+
+            // Marcar números en el tablero
+            masterBoardEl.querySelectorAll('.master-board-cell-display').forEach(cell => cell.classList.remove('drawn'));
+            gameState.drawnNumbers.forEach(ballNum => {
+                const cell = masterBoardEl.querySelector(`.master-board-cell-display[data-number="${ballNum}"]`);
+                if (cell) {
+                    cell.classList.add('drawn');
+                }
+            });
+        }
+
+        // Manejar mensajes y anuncios de ganador en el overlay
+        if (gameState.displayStatus) {
+            if (gameState.displayStatus.mainMessage) {
+                mainDisplayMessageEl.textContent = gameState.displayStatus.mainMessage;
+                winnerBoxEl.style.display = 'none'; // Ocultar caja de ganador
+                overlayContainerEl.classList.add('active');
+                bodyEl.classList.remove('bingo-celebration'); // Quitar celebración si solo es mensaje
+                stopContinuousConfetti(); // Detener confeti si solo es mensaje
+            } else if (gameState.displayStatus.winnerAnnouncement) {
+                const ann = gameState.displayStatus.winnerAnnouncement;
+                announcedPrizeNameEl.textContent = ann.prizeName;
+                announcedPrizeDescriptionEl.textContent = ann.prizeDescription || "";
+                announcedWinnerNameEl.textContent = ann.winnerName;
+
+                announcedPrizeImageEl.style.display = ann.prizeImageUrl ? 'block' : 'none';
+                if(ann.prizeImageUrl) announcedPrizeImageEl.src = ann.prizeImageUrl;
+                
+                announcedWinnerPhotoEl.style.display = ann.winnerPhotoUrl ? 'block' : 'none';
+                if(ann.winnerPhotoUrl) announcedWinnerPhotoEl.src = ann.winnerPhotoUrl;
+
+                mainDisplayMessageEl.textContent = ""; // Limpiar mensaje principal
+                winnerBoxEl.style.display = 'block';
+                overlayContainerEl.classList.add('active');
+
+                if (ann.isBingo) {
+                    bodyEl.classList.add('bingo-celebration'); // Activa fondo especial
+                    launchContinuousConfetti(['#FFD700', '#FFC107', '#FFEB3B', '#FFFACD', '#FFFFFF'], 0); // Confeti dorado para bingo (sin fin)
+                } else {
+                    bodyEl.classList.remove('bingo-celebration'); // Sin fondo especial para línea
+                    launchContinuousConfetti(['#4dd0e1', '#80deea', '#26c6da', '#e0f7fa', '#afeeee'], 7000); // Confeti cian para línea (7 seg)
+                }
+            } else { // No hay mensaje ni anuncio
+                overlayContainerEl.classList.remove('active');
+                // No detener confeti aquí, podría ser el confeti general de BINGO
+                // bodyEl.classList.remove('bingo-celebration'); // Tampoco, podría ser la celebración de BINGO
+            }
+        } else { // Si no hay displayStatus, asegurar que el overlay esté oculto
+             overlayContainerEl.classList.remove('active');
+        }
+        
+        // Manejar confeti general de BINGO (si triggerConfetti es true y no hay un anuncio específico)
+        if (gameState.triggerConfetti && (!gameState.displayStatus || !gameState.displayStatus.winnerAnnouncement)) {
+            if (!bodyEl.classList.contains('bingo-celebration')) { // Solo si no está ya celebrando un bingo anunciado
+                bodyEl.classList.add('bingo-celebration');
+                launchContinuousConfetti(['#FFD700', '#FFC107', '#FFEB3B', '#FFFACD', '#FFFFFF'], 0);
+            }
+        } else if (!gameState.triggerConfetti && (!gameState.displayStatus || !gameState.displayStatus.winnerAnnouncement?.isBingo)) {
+            // Detener confeti general y celebración si no hay triggerConfetti y no se está mostrando un anuncio de BINGO.
+            // Esto evita que se detenga el confeti de un anuncio de LÍNEA.
+            stopContinuousConfetti();
+            bodyEl.classList.remove('bingo-celebration');
+        }
+    }
+    
+    // --- Confetti Functions ---
+    function launchContinuousConfetti(colors, durationMs = 0) {
+        stopContinuousConfetti(); // Detener cualquier confeti anterior
+        const animationEnd = durationMs > 0 ? Date.now() + durationMs : Infinity;
+        let remainingTime = durationMs;
+
+        function frame(currentTime) {
+            if (confettiInterval === null) return; // Si se detuvo externamente
+
+            if (durationMs > 0) {
+                const elapsedTime = currentTime - (frame.lastTime || currentTime);
+                remainingTime -= elapsedTime;
+                if (remainingTime <= 0) {
+                    stopContinuousConfetti();
+                    return;
+                }
+            }
+            frame.lastTime = currentTime;
+
+            confetti({ particleCount: durationMs === 0 ? 3 : 2, angle: 60, spread: 65, origin: { x: 0 }, colors: colors, ticks: 200, drift: 0.1, scalar: 1.1 });
+            confetti({ particleCount: durationMs === 0 ? 3 : 2, angle: 120, spread: 65, origin: { x: 1 }, colors: colors, ticks: 200, drift: -0.1, scalar: 1.1 });
+            
+            confettiInterval = requestAnimationFrame(frame);
+        }
+        frame.lastTime = performance.now(); // Usar performance.now() para alta precisión
+        confettiInterval = requestAnimationFrame(frame);
+    }
+
+    function stopContinuousConfetti() {
+        if (confettiInterval) {
+            cancelAnimationFrame(confettiInterval);
+        }
+        confettiInterval = null;
+        // confetti.reset(); // Opcional: limpia inmediatamente el canvas. Si se omite, el confeti existente caerá.
+    }
+
+    // --- Event Listeners & Initial Load ---
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'bingoGameState') {
+            try {
+                const newState = JSON.parse(event.newValue);
+                if (newState) {
+                    updateDisplay(newState);
+                    // console.log("Display actualizado por localStorage:", newState);
+                }
+            } catch (e) {
+                console.error("Error al parsear gameState desde localStorage en Display:", e);
+            }
+        }
+    });
+
+    function initialLoad() {
+        createMasterBoard(); // Crear el tablero al cargar
+        try {
+            const initialGameState = JSON.parse(localStorage.getItem('bingoGameState'));
+            if (initialGameState) {
+                updateDisplay(initialGameState);
+                console.log("Estado inicial cargado en Display:", initialGameState);
+            } else {
+                // Estado por defecto si no hay nada en localStorage
+                updateDisplay({
+                    eventName: "Bingo Interactivo",
+                    eventDescription: "¡Mucha Suerte!",
+                    currentPlayMessage: "Esperando configuración del juego...",
+                    currentBall: '--', drawnNumbers: [],
+                    displayStatus: { mainMessage: "", winnerAnnouncement: null },
+                    triggerConfetti: false
+                });
+            }
+        } catch (e) {
+            console.error("Error al cargar estado inicial en Display:", e);
+            updateDisplay({ currentBall: '--', drawnNumbers: [] }); // Fallback
+        }
+    }
+
+    initialLoad();
+});```
+
+

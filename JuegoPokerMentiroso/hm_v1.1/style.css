@@ -1,0 +1,105 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align items to the top */
+    min-height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding-top: 20px; /* Add some padding at the top */
+}
+
+.game-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 90%;
+    max-width: 800px;
+}
+
+.settings {
+    margin-bottom: 20px;
+}
+
+.settings label, .settings input, .settings button {
+    margin: 5px;
+}
+
+.player-area {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+.cards {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100px; /* Ensure space for cards */
+    margin-bottom: 10px;
+}
+
+.card {
+    border: 1px solid black;
+    border-radius: 5px;
+    width: 60px;
+    height: 90px;
+    margin: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around; /* Better for suit/rank display */
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    background-color: white;
+    cursor: pointer; /* For selecting discards */
+    user-select: none; /* Prevent text selection */
+}
+
+.card.selected {
+    border: 2px solid blue;
+    transform: translateY(-5px);
+}
+
+.card.hidden {
+    background-image: repeating-linear-gradient(
+        45deg,
+        #606dbc,
+        #606dbc 10px,
+        #465298 10px,
+        #465298 20px
+      );
+    color: transparent; /* Hide text on hidden cards */
+}
+
+
+.card .suit {
+    font-size: 24px;
+}
+.card.hearts .suit, .card.diamonds .suit { color: red; }
+.card.spades .suit, .card.clubs .suit { color: black; }
+
+
+.actions button, .actions select, .actions input {
+    margin: 5px;
+    padding: 8px 12px;
+}
+
+#game-log {
+    margin: 20px 0;
+    padding: 10px;
+    background-color: #e9e9e9;
+    border-radius: 5px;
+}
+
+#game-log p {
+    margin: 5px 0;
+}
+
+/* Hide buttons by default, JS will show them */
+.action-btn {
+    display: none;
+}

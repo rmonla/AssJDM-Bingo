@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Interactivo - Panel de Control v7.1</title>
+    <link rel="stylesheet" href="bingo-styles.css">
+</head>
+<body>
+    <div id="control-panel">
+        <header>
+            <h1>Panel de Control del Bingo</h1>
+        </header>
+
+        <div class="main-layout">
+            <!-- Columna Izquierda: Sorteo y Tablero -->
+            <section class="draw-section">
+                <h2>Sorteo Actual</h2>
+                <div class="current-number-display" id="controlCurrentNumber">--</div>
+                <div class="drawn-count" id="controlDrawnCount">Bolillas sorteadas: 0 / 91</div>
+
+                <div class="draw-controls">
+                    <button id="btnDrawManual" class="control-button">SACAR BOLILLA</button>
+                    <div class="auto-draw-controls">
+                        <h3>Modo Automático</h3>
+                        <select id="autoDrawInterval">
+                            <option value="3000">3 segundos</option>
+                            <option value="4000" selected>4 segundos</option>
+                            <option value="5000">5 segundos</option>
+                        </select>
+                        <button id="btnToggleAutoDraw" class="control-button">INICIAR AUTOMÁTICO</button>
+                        <span id="autoDrawStatus">Estado: Inactivo</span>
+                    </div>
+                </div>
+
+                <h2>Tablero de Números (00-90)</h2>
+                <div class="number-board" id="controlNumberBoard">
+                    <!-- Los números se generarán con JS -->
+                </div>
+            </section>
+
+            <!-- Columna Derecha: Configuración y Controles -->
+            <aside class="config-section">
+                <div class="history-panel">
+                    <h3>Últimos Sorteados:</h3>
+                    <ul id="controlHistoryList">
+                        <!-- Historial se llenará con JS -->
+                    </ul>
+                </div>
+
+                <div class="accordion">
+                    <!-- Sección 1: Datos de la Jugada -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">1. Datos de la Jugada</button>
+                        <div class="accordion-content">
+                            <label for="eventName">Nombre del Evento:</label>
+                            <input type="text" id="eventName" value="Bingo Fantástico">
+                            
+                            <label for="eventDescription">Descripción:</label>
+                            <textarea id="eventDescription" rows="2">¡Gran sorteo de premios!</textarea>
+                            
+                            <label for="eventLogo">Logo (opcional):</label>
+                            <input type="file" id="eventLogo" accept="image/*">
+                            <img id="logoPreview" src="#" alt="Vista previa del logo" style="max-width: 100px; display: none;">
+                            <button id="removeLogoBtn" style="display: none;">Quitar Logo</button>
+                            <button id="saveEventDetails" class="control-button">Guardar Datos Evento</button>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: Premios -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">2. Configuración de Premios</button>
+                        <div class="accordion-content">
+                            <div class="prize-tabs">
+                                <button class="tab-link active" data-prize="linea1">Línea 1</button>
+                                <button class="tab-link" data-prize="linea2">Línea 2</button>
+                                <button class="tab-link" data-prize="linea3">Línea 3</button>
+                                <button class="tab-link" data-prize="bingo">Bingo</button>
+                            </div>
+
+                            <div id="prizeConfigContent">
+                                <!-- Contenido de las pestañas se carga aquí por JS -->
+                            </div>
+                             <button id="savePrizeSettings" class="control-button">Guardar Configuración Premios</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección 3: Controles de Verificación -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">3. Verificación y Gestión</button>
+                        <div class="accordion-content">
+                            <h3>Verificación de Premio</h3>
+                            <select id="verifyPrizeSelect">
+                                <!-- Opciones se llenan con JS -->
+                            </select>
+                            <button id="btnStartVerification" class="control-button">INICIAR VERIFICACIÓN</button>
+                            <div id="verificationControls" style="display: none;">
+                                <p>Verificando <strong id="verifyingPrizeName"></strong>...</p>
+                                <button id="btnConfirmWinner" class="control-button success">CONFIRMAR GANADOR</button>
+                                <button id="btnRejectClaim" class="control-button danger">RECHAZAR RECLAMO</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 4: Utilidades -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">4. Utilidades</button>
+                        <div class="accordion-content">
+                            <button id="btnResetDraw" class="control-button warning">REINICIAR SORTEO (Números)</button>
+                            <button id="btnFullReset" class="control-button danger">REINICIAR JUEGO COMPLETO</button>
+                            <button id="btnExportPdf" class="control-button">EXPORTAR ESTADO (PDF)</button>
+                            <button id="btnExportHistoryCsv" class="control-button">EXPORTAR HISTORIAL (CSV)</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Librerías externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="bingo-core.js"></script>
+</body>
+</html>

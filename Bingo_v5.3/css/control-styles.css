@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 95vh;
+    box-sizing: border-box;
+}
+
+.control-panel-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 800px; /* Aumentado para pestañas */
+    margin-bottom: 20px;
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+details {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: background-color 0.3s;
+}
+
+details[open] {
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+summary {
+    font-weight: 600;
+    font-size: 1.25em;
+    padding: 18px 20px;
+    cursor: pointer;
+    outline: none;
+    color: #34495e;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+summary::after {
+    content: '▼';
+    font-size: 0.8em;
+    color: #34495e;
+    transition: transform 0.2s ease-in-out;
+}
+
+details[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: 0px 20px 20px 20px;
+    border-top: 1px solid #e7e7e7;
+}
+
+.form-group { margin-bottom: 18px; }
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.form-group input[type="text"],
+.form-group input[type="file"],
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    vertical-align: middle;
+    height: 1.1em; width: 1.1em;
+}
+.form-group textarea { min-height: 80px; resize: vertical; }
+
+.image-preview-container { margin-top: 10px; }
+.image-preview {
+    max-width: 180px;
+    max-height: 120px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    object-fit: contain;
+    display: block;
+    background-color: #f8f9fa;
+}
+.hidden { display: none !important; }
+
+/* Tabs para Premios de Línea */
+.tabs-container {
+    margin-bottom: 20px;
+}
+.tab-buttons {
+    display: flex;
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 15px;
+}
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    font-size: 1em;
+    font-weight: 500;
+    color: #495057;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Alinea con el borde inferior del contenedor */
+    transition: color 0.2s, border-color 0.2s;
+}
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: 600;
+}
+.tab-content {
+    display: none;
+    padding-top: 10px;
+}
+.tab-content.active {
+    display: block;
+}
+
+.prize-item { /* Usado para el premio Bingo y dentro de cada tab-content */
+    border: 1px solid #d1d9e6;
+    padding: 18px;
+    border-radius: 8px;
+    background-color: #fdfdff;
+}
+.prize-item h3 { /* Para "Configuración Premio Bingo" */
+    margin-top: 0; margin-bottom: 15px; color: #17a2b8; font-size: 1.15em; font-weight: 600;
+}
+.prize-item h4 { /* Para títulos dentro de pestañas o items individuales */
+    margin-top: 0; margin-bottom: 15px; color: #2d3748; font-size: 1.1em;
+    display: flex; align-items: center;
+}
+.prize-item h4 label { margin-bottom: 0; font-weight: 600; }
+.prize-status { font-size: 0.8em; color: #28a745; margin-left: auto; font-style: italic;}
+
+
+.button-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+    margin-top: 25px;
+}
+.action-button {
+    padding: 14px 20px;
+    font-size: 1.05em;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.action-button:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.15); }
+.action-button:active { transform: translateY(0); box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+
+.btn-save { background-color: #007bff; }
+.btn-draw { background-color: #28a745; }
+.btn-draw:disabled { background-color: #adb5bd; cursor: not-allowed; }
+.btn-verify { background-color: #ffc107; color: #212529;}
+.btn-reset { background-color: #dc3545; }
+.btn-export-pdf { background-color: #6f42c1; } /* Púrpura para PDF */
+.btn-confirm-winner { background-color: #17a2b8; }
+.btn-cancel { background-color: #6c757d; }
+
+#winnerVerificationSection {
+    margin-top: 25px;
+    padding: 25px;
+    background-color: #e9f5ff;
+    border: 1px solid #b3d7ff;
+    border-radius: 8px;
+}
+#winnerVerificationSection h3 { margin-top: 0; color: #0056b3; font-weight: 600; }
+
+.instructions { margin-top: 30px; text-align: center; font-size: 0.95em; color: #667281; }
+.instructions a { color: #007bff; text-decoration: none; font-weight: 500; }
+.instructions a:hover { text-decoration: underline; }

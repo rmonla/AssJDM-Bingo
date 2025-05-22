@@ -1,0 +1,6 @@
+/* Estilos para el Bingo Interactivo */
+:root {
+    --color-principal: #2c3e50;
+    --color-secundario: #ecf0f1;
+}
+body { font-family: sans-serif; margin: 0; background: var(--color-secundario); }

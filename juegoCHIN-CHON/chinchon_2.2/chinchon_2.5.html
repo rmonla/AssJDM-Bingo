@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chin Chón - Poker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #006400;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .hand-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 130px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            flex-wrap: wrap;
+            transition: background-color 0.3s, border 0.3s;
+        }
+        .player-hand.drag-over-draw-target {
+            background-color: rgba(255, 215, 0, 0.3);
+            border: 2px dashed #ffd700;
+        }
+
+
+        .cpu-hand .card {
+            background-color: #4169E1;
+            color: #4169E1;
+            border: 1px solid #304D80;
+        }
+        .cpu-hand .card::before {
+            content: "♤♧";
+            color: #fff;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            opacity: 0.7;
+        }
+        .cpu-hand .card .value, .cpu-hand .card .suit {
+            display: none;
+        }
+
+        .card {
+            width: 70px;
+            height: 100px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            cursor: grab;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            position: relative;
+            font-size: 12px;
+            color: #333;
+            box-sizing: border-box;
+        }
+        .card.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .dragging-source {
+            opacity: 0.6 !important;
+            border-style: dashed !important;
+            border-color: #FFD700 !important;
+        }
+        .card.dragging-for-discard {
+            box-shadow: 0 0 15px rgba(255,0,0,0.7);
+        }
+        .card.drag-over-placeholder {
+            border: 2px dashed #ffd700;
+            transform: translateY(-5px);
+        }
+        .card.selected {
+            transform: translateY(-10px);
+            box-shadow: 3px 13px 8px rgba(0,0,0,0.5);
+        }
+        .card.disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .card .value { font-size: 20px; font-weight: bold; line-height: 1; }
+        .card .suit { font-size: 24px; line-height: 1; }
+        .suit-Corazones, .suit-Diamantes { color: #FF0000; }
+        .suit-Treboles, .suit-Picas { color: #000000; }
+
+        .deck-pozo-area {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .deck-pile, .discard-pile {
+            width: 80px;
+            height: 110px;
+            border: 2px dashed #fff;
+            border-radius: 8px;
+            margin: 0 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            position: relative;
+            transition: background-color 0.3s, border 0.3s;
+        }
+        .discard-pile.drag-over-discard-target {
+            background-color: rgba(255, 0, 0, 0.2);
+            border: 2px dashed #ff0000;
+        }
+        .deck-pile .card-count{ position: absolute; bottom: -20px; font-size: 12px; }
+        .deck-pile { background-color: #4169E1; }
+        .discard-pile .card { margin: 0; }
+
+        .actions, .game-messages { margin-bottom: 15px; text-align: center; }
+        button {
+            background-color: #FFD700; color: #333; border: none;
+            padding: 10px 20px; margin: 5px; border-radius: 5px;
+            cursor: pointer; font-size: 16px; transition: background-color 0.2s;
+        }
+        button:hover { background-color: #F0C000; }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        .scoreboard { /* Asegurarse que z-index es alto y position es fixed/absolute */
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 180px;
+            background-color: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+            z-index: 100; /* Debe estar por encima de otros elementos si es fixed */
+        }
+        .scoreboard h2 { text-align: center; margin-top: 0; margin-bottom: 8px; font-size: 1em; }
+        .scoreboard p { margin: 4px 0; font-size: 0.85em; display: flex; justify-content: space-between; }
+
+        .modal {
+            display: none; position: fixed; z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.6);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: #2c3e50; margin: auto; padding: 20px;
+            border: 1px solid #888;
+            width: 90%; max-width: 800px;
+            border-radius: 10px; text-align: center;
+        }
+        .modal-content h3 { margin-top: 0; }
+        .round-summary-container {
+            display: flex; flex-direction: row;
+            justify-content: space-around; align-items: flex-start;
+            flex-wrap: wrap; margin-bottom: 15px;
+        }
+        .round-summary-section {
+            flex-basis: 45%; min-width: 280px;
+            padding: 10px; box-sizing: border-box;
+            border: 1px solid #444; border-radius: 5px; margin: 5px;
+        }
+        .round-summary-section h4 { margin-top: 0; }
+        .modal-content .modal-actions button { margin-top: 20px; }
+        .round-summary-cards { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+        .round-summary-cards .card { font-size: 8px; width: 50px; height: 70px; }
+        .melded { border: 2px solid limegreen !important; }
+        .unmelded { border: 2px solid crimson !important; }
+    </style>
+</head>
+<body>
+    <div class="scoreboard">
+        <h2>Puntuación</h2>
+        <p>Jugador: <span id="player-score">0</span></p>
+        <p>CPU: <span id="cpu-score">0</span></p>
+        <p>Ronda: <span id="round-number">1</span></p>
+    </div>
+
+    <div class="game-container">
+        <h1>Chin Chón <small>(Poker)</small></h1>
+        <div id="cpu-area">
+            <h3>Mano CPU (<span id="cpu-card-count">0</span> cartas)</h3>
+            <div class="hand-area cpu-hand" id="cpu-hand"></div>
+        </div>
+        <div class="deck-pozo-area">
+            <div class="deck-pile" id="deck-pile" title="Arrastra para Robar del Mazo">
+                MAZO <div class="card-count" id="deck-count">0</div>
+            </div>
+            <div class="discard-pile" id="discard-pile" title="Arrastra una carta de tu mano aquí para descartar, o una carta del pozo a tu mano para robar"></div>
+        </div>
+        <div class="game-messages" id="game-message">Turno del Jugador. Elige una acción.</div>
+        <div id="player-area">
+            <h3>Tu Mano (Arrastra para ordenar o robar aquí. Arrastra al pozo para descartar)</h3>
+            <div class="hand-area player-hand" id="player-hand"></div>
+        </div>
+        <div class="actions">
+            <button id="btn-draw-deck" style="display:none;">Robar del Mazo</button>
+            <button id="btn-draw-discard" style="display:none;">Robar del Pozo</button>
+            <button id="btn-discard" style="display:none;" disabled>Descartar Seleccionada</button>
+            <button id="btn-close-round" onclick="playerAttemptClose()" disabled>Cerrar Ronda</button>
+        </div>
+    </div>
+
+    <div id="round-summary-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="round-summary-title">Fin de la Ronda</h3>
+            <div class="round-summary-container">
+                <div id="round-summary-jugador" class="round-summary-section">
+                    <h4>Jugador:</h4>
+                    <p>Puntos esta ronda: <span id="summary-player-points-round">0</span></p>
+                    <p>Combinaciones:</p> <div id="summary-player-melds" class="round-summary-cards"></div>
+                    <p>Cartas sueltas:</p> <div id="summary-player-unmelded" class="round-summary-cards"></div>
+                </div>
+                <div id="round-summary-cpu" class="round-summary-section">
+                    <h4>CPU:</h4>
+                    <p>Puntos esta ronda: <span id="summary-cpu-points-round">0</span></p>
+                    <p>Combinaciones:</p> <div id="summary-cpu-melds" class="round-summary-cards"></div>
+                    <p>Cartas sueltas:</p> <div id="summary-cpu-unmelded" class="round-summary-cards"></div>
+                </div>
+            </div>
+            <p id="round-winner-message"></p>
+            <div class="modal-actions">
+                <button id="modal-btn-next-round" style="display:none;" onclick="handleNextRoundFromModal()">Siguiente Ronda</button>
+                <button id="modal-btn-new-game" style="display:none;" onclick="handleNewGameFromModal()">Nuevo Juego</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const PALOS_POKER = ["Corazones", "Diamantes", "Treboles", "Picas"];
+    const VALORES_DISPLAY_POKER = { 1: "A", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "10", 11: "J", 12: "Q", 13: "K" };
+    const VALORES_NUMERICOS_POKER = { "A": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 11, "Q": 12, "K": 13 };
+    const PUNTOS_CARTAS_POKER = { "A": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 10, "Q": 10, "K": 10 };
+
+    const LIMITE_PUNTOS_PARTIDA = -100;
+    const PUNTOS_CHINCHON = -25;
+    const PUNTOS_CERRAR_CON_CERO = -10;
+    const MAX_PUNTOS_PARA_CERRAR = 5;
+    const PENALIZACION_CORTE_FALLIDO = 25;
+
+    let mazo = [];
+    let pozo = [];
+    let manoJugador = [];
+    let manoCPU = [];
+    let puntuacionJugador = 0;
+    let puntuacionCPU = 0;
+    let rondaActual = 1;
+    let turnoJugador = true;
+    let jugadorHaRobado = false;
+    let cartaSeleccionadaParaDescartar = null;
+    let juegoTerminado = false;
+
+    const playerHandElement = document.getElementById('player-hand');
+    const cpuHandElement = document.getElementById('cpu-hand');
+    const deckPileElement = document.getElementById('deck-pile');
+    const discardPileElement = document.getElementById('discard-pile');
+    const gameMessageElement = document.getElementById('game-message');
+    const playerScoreElement = document.getElementById('player-score');
+    const cpuScoreElement = document.getElementById('cpu-score');
+    const roundNumberElement = document.getElementById('round-number');
+    const deckCountElement = document.getElementById('deck-count');
+    const cpuCardCountElement = document.getElementById('cpu-card-count');
+    const btnCloseRound = document.getElementById('btn-close-round');
+    const roundSummaryModal = document.getElementById('round-summary-modal');
+    const modalBtnNextRound = document.getElementById('modal-btn-next-round');
+    const modalBtnNewGame = document.getElementById('modal-btn-new-game');
+
+    let draggedItem = null;
+    let placeholder = null;
+    let draggedSourceType = null;
+    let isDraggingPlayerCardForDiscard = false;
+
+    class Carta {
+        constructor(valorNum, palo) {
+            this.valorNum = valorNum; this.palo = palo;
+            this.nombreValor = VALORES_DISPLAY_POKER[valorNum];
+            this.puntos = PUNTOS_CARTAS_POKER[this.nombreValor];
+            this.id = `${this.nombreValor}-${this.palo}-${Math.random().toString(16).slice(2)}`;
+        }
+        toString() { return `${this.nombreValor} de ${this.palo}`; }
+        getHTML() {
+            const cardDiv = document.createElement('div');
+            cardDiv.classList.add('card', `suit-${this.palo}`);
+            cardDiv.dataset.id = this.id; cardDiv.dataset.valorNum = this.valorNum; cardDiv.dataset.palo = this.palo;
+            const valorDisplay = this.nombreValor === "10" ? "10" : this.nombreValor.substring(0,1);
+            cardDiv.innerHTML = `
+                <span class="value">${valorDisplay}</span>
+                <span class="suit">${getSuitSymbolPoker(this.palo)}</span>
+                <span class="value">${valorDisplay}</span>
+            `;
+            return cardDiv;
+        }
+    }
+
+    function getSuitSymbolPoker(palo) {
+        if (palo === "Corazones") return '♥'; if (palo === "Diamantes") return '♦';
+        if (palo === "Treboles") return '♣'; if (palo === "Picas") return '♠';
+        return '?';
+    }
+
+    function crearBaraja() {
+        mazo = [];
+        for (const palo of PALOS_POKER) { for (const valorNum of Object.values(VALORES_NUMERICOS_POKER)) { mazo.push(new Carta(valorNum, palo)); } }
+        for (let i = mazo.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [mazo[i], mazo[j]] = [mazo[j], mazo[i]]; }
+    }
+
+    function repartirCartas() {
+        manoJugador = []; manoCPU = []; pozo = [];
+        for (let i = 0; i < 7; i++) {
+            if (mazo.length > 0) manoJugador.push(mazo.pop());
+            if (mazo.length > 0) manoCPU.push(mazo.pop());
+        }
+        if (mazo.length > 0) { pozo.push(mazo.pop()); }
+        else { console.error("Mazo vacío al repartir carta inicial al pozo."); }
+    }
+
+    function renderizarMano(mano, element, esCPU = false) {
+        element.innerHTML = '';
+        mano.forEach(carta => {
+            const cardElement = carta.getHTML();
+            if (esCPU) {
+                cardElement.onclick = null; cardElement.draggable = false;
+            } else {
+                cardElement.draggable = true;
+                cardElement.addEventListener('dragstart', handleDragStartPlayerCard);
+                cardElement.addEventListener('dragend', handleDragEndPlayerCard);
+                if (jugadorHaRobado && turnoJugador && manoJugador.length === 8) {
+                    cardElement.onclick = () => seleccionarCartaParaCierre(carta, cardElement);
+                } else {
+                    cardElement.onclick = null;
+                    if (cartaSeleccionadaParaDescartar && cartaSeleccionadaParaDescartar.id === carta.id) {
+                        cardElement.classList.add('selected');
+                    }
+                }
+            }
+            element.appendChild(cardElement);
+        });
+        if (esCPU) { cpuCardCountElement.textContent = mano.length; }
+    }
+
+    function handleDragStartPlayerCard(e) {
+        if (draggedSourceType) return;
+        draggedItem = e.target;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedItem.dataset.id);
+        draggedItem.classList.add('dragging');
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.classList.add('card', 'drag-over-placeholder');
+            placeholder.style.width = draggedItem.offsetWidth + 'px';
+            placeholder.style.height = draggedItem.offsetHeight + 'px';
+            placeholder.style.margin = getComputedStyle(draggedItem).margin;
+        }
+    }
+
+    function handleDragEndPlayerCard(e) {
+        if (!draggedItem) return;
+        draggedItem.classList.remove('dragging');
+        draggedItem.classList.remove('dragging-for-discard');
+        if (placeholder && placeholder.parentNode) {
+            placeholder.parentNode.removeChild(placeholder);
+        }
+        draggedItem = null; // Limpiar siempre al final del drag de una carta de mano
+        isDraggingPlayerCardForDiscard = false;
+        discardPileElement.classList.remove('drag-over-discard-target');
+    }
+    
+    playerHandElement.addEventListener('dragover', handleDragOverPlayerHand);
+    playerHandElement.addEventListener('dragenter', handleDragEnterPlayerHand);
+    playerHandElement.addEventListener('dragleave', handleDragLeavePlayerHand);
+    playerHandElement.addEventListener('drop', handleDropOnPlayerHand);
+
+    discardPileElement.addEventListener('dragover', handleDragOverDiscardPile);
+    discardPileElement.addEventListener('dragenter', handleDragEnterDiscardPile);
+    discardPileElement.addEventListener('dragleave', handleDragLeaveDiscardPile);
+    discardPileElement.addEventListener('drop', handleDropOnDiscardPile);
+
+    function handleDragOverPlayerHand(e) {
+        e.preventDefault();
+        if (draggedItem && draggedItem.parentNode === playerHandElement) {
+            isDraggingPlayerCardForDiscard = false;
+            if(draggedItem) draggedItem.classList.remove('dragging-for-discard');
+            e.dataTransfer.dropEffect = 'move';
+            const afterElement = getDragAfterElementInPlayerHand(playerHandElement, e.clientX);
+            if (afterElement == null) { if (!placeholder.parentNode || placeholder.nextSibling != null) playerHandElement.appendChild(placeholder); }
+            else { if (!placeholder.parentNode || placeholder.nextSibling != afterElement) playerHandElement.insertBefore(placeholder, afterElement); }
+        } else if (draggedSourceType === 'deck' || draggedSourceType === 'discard') {
+            if (turnoJugador && !jugadorHaRobado && !juegoTerminado) {
+                e.dataTransfer.dropEffect = 'move'; playerHandElement.classList.add('drag-over-draw-target');
+            } else { e.dataTransfer.dropEffect = 'none'; }
+        }
+    }
+
+    function handleDragEnterPlayerHand(e) {
+        e.preventDefault();
+        if (draggedSourceType === 'deck' || draggedSourceType === 'discard') {
+            if (turnoJugador && !jugadorHaRobado && !juegoTerminado) playerHandElement.classList.add('drag-over-draw-target');
+        }
+    }
+
+    function handleDragLeavePlayerHand(e) {
+        if (e.target === playerHandElement || !playerHandElement.contains(e.relatedTarget)) { // Evitar quitar si se mueve a un hijo
+            playerHandElement.classList.remove('drag-over-draw-target');
+        }
+    }
+
+    function handleDropOnPlayerHand(e) {
+        e.preventDefault();
+        playerHandElement.classList.remove('drag-over-draw-target');
+        if (draggedItem && draggedItem.parentNode === playerHandElement) {
+            const draggedCardId = draggedItem.dataset.id;
+            const draggedCardIndex = manoJugador.findIndex(c => c.id === draggedCardId);
+            if (draggedCardIndex === -1) { return; }
+            const [movedCard] = manoJugador.splice(draggedCardIndex, 1);
+            let newIndex = -1;
+            if (placeholder && placeholder.parentNode === playerHandElement) {
+                newIndex = Array.from(playerHandElement.children).indexOf(placeholder);
+            } else {
+                const afterElement = getDragAfterElementInPlayerHand(playerHandElement, e.clientX);
+                if (afterElement === null) newIndex = manoJugador.length;
+                else { const targetCardId = afterElement.dataset.id; newIndex = manoJugador.findIndex(c => c.id === targetCardId); }
+            }
+            if (newIndex === -1) newIndex = manoJugador.length; // Seguridad
+            manoJugador.splice(newIndex, 0, movedCard);
+            // El placeholder y draggedItem se limpian en handleDragEndPlayerCard
+            actualizarUI();
+        } else if (draggedSourceType) {
+            if (turnoJugador && !jugadorHaRobado && !juegoTerminado) {
+                if (draggedSourceType === 'deck' && mazo.length > 0) playerDrawFromDeck();
+                else if (draggedSourceType === 'discard' && pozo.length > 0) playerDrawFromDiscard();
+            }
+        }
+    }
+
+    function handleDragOverDiscardPile(e) {
+        e.preventDefault();
+        if (draggedItem && draggedItem.parentNode === playerHandElement && turnoJugador && jugadorHaRobado && manoJugador.length === 8) {
+            e.dataTransfer.dropEffect = 'move';
+            discardPileElement.classList.add('drag-over-discard-target');
+            isDraggingPlayerCardForDiscard = true;
+            draggedItem.classList.add('dragging-for-discard');
+        } else {
+            e.dataTransfer.dropEffect = 'none';
+            // No resetear isDraggingPlayerCardForDiscard aquí, puede causar parpadeo
+            // if (draggedItem) draggedItem.classList.remove('dragging-for-discard');
+            // discardPileElement.classList.remove('drag-over-discard-target');
+        }
+    }
+
+    function handleDragEnterDiscardPile(e) {
+        e.preventDefault();
+        if (draggedItem && draggedItem.parentNode === playerHandElement && turnoJugador && jugadorHaRobado && manoJugador.length === 8) {
+            discardPileElement.classList.add('drag-over-discard-target');
+            isDraggingPlayerCardForDiscard = true; // Confirmar intención
+            if(draggedItem) draggedItem.classList.add('dragging-for-discard');
+        }
+    }
+
+    function handleDragLeaveDiscardPile(e) {
+        // Solo quitar si el mouse realmente salió del discardPile y no a un hijo
+        if (e.target === discardPileElement || !discardPileElement.contains(e.relatedTarget)) {
+            discardPileElement.classList.remove('drag-over-discard-target');
+            if (draggedItem) draggedItem.classList.remove('dragging-for-discard');
+            isDraggingPlayerCardForDiscard = false; // Resetear intención si sale
+        }
+    }
+
+    function handleDropOnDiscardPile(e) {
+        e.preventDefault();
+        discardPileElement.classList.remove('drag-over-discard-target');
+        if (draggedItem && isDraggingPlayerCardForDiscard && turnoJugador && jugadorHaRobado && manoJugador.length === 8) {
+            const cardIdToDiscard = e.dataTransfer.getData('text/plain'); // Obtener ID de la carta
+             // Asegurarse que el draggedItem actual es el que corresponde al ID
+            if (draggedItem.dataset.id === cardIdToDiscard) {
+                playerDiscardCardById(cardIdToDiscard);
+            } else {
+                console.warn("Mismatch en carta arrastrada y datos de transferencia.");
+            }
+        }
+        // isDraggingPlayerCardForDiscard se resetea en handleDragEndPlayerCard
+    }
+
+    function playerDiscardCardById(cardId) {
+        const index = manoJugador.findIndex(c => c.id === cardId);
+        if (index > -1) {
+            const [cartaDescartada] = manoJugador.splice(index, 1);
+            pozo.push(cartaDescartada);
+            if (cartaSeleccionadaParaDescartar && cartaSeleccionadaParaDescartar.id === cardId) {
+                cartaSeleccionadaParaDescartar = null;
+            }
+            jugadorHaRobado = false; // Importante: el descarte completa la fase de robo-descarte
+            const { puntosSueltos: puntosJugadorPostDescarte, esChinchon } = evaluarManoCompleto(manoJugador);
+            let mensaje = `Has descartado ${cartaDescartada.toString()}. `;
+            if (esChinchon) { mensaje += "¡Tienes ChinChón! Puedes cerrar la ronda."; }
+            else if (puntosJugadorPostDescarte <= MAX_PUNTOS_PARA_CERRAR) { mensaje += `Puedes cerrar con ${puntosJugadorPostDescarte} puntos.`; }
+            else { mensaje += "Turno de la CPU."; }
+            gameMessageElement.textContent = mensaje;
+            actualizarUI();
+            const puedeCerrarAhora = esChinchon || puntosJugadorPostDescarte <= MAX_PUNTOS_PARA_CERRAR;
+            if (puedeCerrarAhora) {
+                if (confirm("¿Quieres cerrar la ronda AHORA? (También puedes usar el botón 'Cerrar Ronda')")) {
+                    finalizarRonda("Jugador", esChinchon);
+                } else {
+                    cambiarTurno();
+                }
+            } else {
+                cambiarTurno();
+            }
+        }
+    }
+
+    function getDragAfterElementInPlayerHand(container, x) {
+        const draggableElements = [...container.querySelectorAll('.card:not(.dragging):not(.drag-over-placeholder)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect(); const offset = x - box.left - box.width / 2;
+            if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } else { return closest; }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function handleDeckDragStart(e) {
+        if (!turnoJugador || jugadorHaRobado || mazo.length === 0 || juegoTerminado) { e.preventDefault(); return; }
+        draggedSourceType = 'deck'; e.dataTransfer.setData('text/plain', 'draw_from_deck'); e.dataTransfer.effectAllowed = 'move'; e.target.classList.add('dragging-source');
+    }
+    function handleDeckDragEnd(e) {
+        draggedSourceType = null; e.target.classList.remove('dragging-source'); playerHandElement.classList.remove('drag-over-draw-target');
+    }
+
+    function handleDiscardCardDragStart(e) { // Para ROBAR del pozo
+         if (!turnoJugador || jugadorHaRobado || pozo.length === 0 || juegoTerminado) { e.preventDefault(); return; }
+        if (!e.target.classList.contains('card')) { e.preventDefault(); return; }
+        draggedSourceType = 'discard'; e.dataTransfer.setData('text/plain', 'draw_from_discard'); e.dataTransfer.effectAllowed = 'move'; e.target.classList.add('dragging-source');
+    }
+    function handleDiscardCardDragEnd(e) {
+        draggedSourceType = null; if (e.target.classList.contains('card')) { e.target.classList.remove('dragging-source'); } playerHandElement.classList.remove('drag-over-draw-target');
+    }
+    
+    deckPileElement.addEventListener('dragstart', handleDeckDragStart);
+    deckPileElement.addEventListener('dragend', handleDeckDragEnd);
+
+    function renderizarPozo() {
+        discardPileElement.innerHTML = '';
+        if (pozo.length > 0) {
+            const topCard = pozo[pozo.length - 1];
+            const cardElement = topCard.getHTML();
+            cardElement.onclick = null;
+            if (turnoJugador && !jugadorHaRobado && !juegoTerminado) {
+                cardElement.draggable = true;
+                cardElement.addEventListener('dragstart', handleDiscardCardDragStart);
+                cardElement.addEventListener('dragend', handleDiscardCardDragEnd);
+            } else { cardElement.draggable = false; }
+            discardPileElement.appendChild(cardElement);
+        } else {
+            discardPileElement.textContent = "Vacío";
+        }
+    }
+
+    function renderizarMazo() {
+        deckCountElement.textContent = mazo.length;
+        deckPileElement.style.display = mazo.length > 0 ? 'flex' : 'none';
+        if (turnoJugador && !jugadorHaRobado && mazo.length > 0 && !juegoTerminado) {
+            deckPileElement.draggable = true; deckPileElement.style.cursor = 'grab';
+        } else {
+            deckPileElement.draggable = false; deckPileElement.style.cursor = 'default';
+        }
+    }
+
+    function actualizarUI() {
+        // Actualizar scoreboard SIEMPRE
+        playerScoreElement.textContent = puntuacionJugador;
+        cpuScoreElement.textContent = puntuacionCPU;
+        roundNumberElement.textContent = rondaActual;
+
+        renderizarMano(manoJugador, playerHandElement);
+        renderizarMano(manoCPU, cpuHandElement, true);
+        renderizarPozo();
+        renderizarMazo();
+        
+        let puedeCerrar = false;
+        if (turnoJugador && jugadorHaRobado && manoJugador.length === 8 && cartaSeleccionadaParaDescartar) {
+            const manoTemporal = manoJugador.filter(c => c.id !== cartaSeleccionadaParaDescartar.id);
+            const evalTemporal = evaluarManoCompleto(manoTemporal);
+            if (evalTemporal.esChinchon || evalTemporal.puntosSueltos <= MAX_PUNTOS_PARA_CERRAR) {
+                puedeCerrar = true;
+            }
+        }
+        btnCloseRound.disabled = !puedeCerrar || juegoTerminado;
+    }
+    
+    function seleccionarCartaParaCierre(carta, cardElement) {
+        if (!jugadorHaRobado || !turnoJugador || manoJugador.length !== 8) return;
+        if (cartaSeleccionadaParaDescartar && cartaSeleccionadaParaDescartar.id === carta.id) {
+            cartaSeleccionadaParaDescartar = null; cardElement.classList.remove('selected');
+        } else {
+            if (cartaSeleccionadaParaDescartar) {
+                const prevSelectedDOM = playerHandElement.querySelector(`.card[data-id="${cartaSeleccionadaParaDescartar.id}"]`);
+                if (prevSelectedDOM) prevSelectedDOM.classList.remove('selected');
+            }
+            cartaSeleccionadaParaDescartar = carta; cardElement.classList.add('selected');
+        }
+        actualizarUI();
+    }
+
+    function playerDrawFromDeck() {
+        if (!turnoJugador || jugadorHaRobado || mazo.length === 0 || juegoTerminado) return;
+        const cartaRobada = mazo.pop();
+        manoJugador.push(cartaRobada);
+        jugadorHaRobado = true;
+        gameMessageElement.textContent = "Robaste del mazo. Arrastra una carta al pozo para descartar, o selecciona una y pulsa 'Cerrar Ronda'.";
+        actualizarUI();
+    }
+
+    function playerDrawFromDiscard() {
+        if (!turnoJugador || jugadorHaRobado || pozo.length === 0 || juegoTerminado) return;
+        const cartaRobada = pozo.pop();
+        manoJugador.push(cartaRobada);
+        jugadorHaRobado = true;
+        gameMessageElement.textContent = "Robaste del pozo. Arrastra una carta al pozo para descartar, o selecciona una y pulsa 'Cerrar Ronda'.";
+        actualizarUI();
+    }
+        
+    function playerAttemptClose() {
+        if (!turnoJugador || !jugadorHaRobado || manoJugador.length !== 8) {
+            alert("Debes robar una carta."); return;
+        }
+        if (!cartaSeleccionadaParaDescartar) {
+            alert("Debes seleccionar (haciendo click) una carta para descartar al cerrar."); return;
+        }
+        const manoTemporalParaCerrar = manoJugador.filter(c => c.id !== cartaSeleccionadaParaDescartar.id);
+        const { esChinchon, puntosSueltos } = evaluarManoCompleto(manoTemporalParaCerrar);
+        if (esChinchon || puntosSueltos <= MAX_PUNTOS_PARA_CERRAR) {
+            const index = manoJugador.findIndex(c => c.id === cartaSeleccionadaParaDescartar.id);
+            const [cartaDescartada] = manoJugador.splice(index, 1);
+            pozo.push(cartaDescartada);
+            gameMessageElement.textContent = esChinchon ? `¡CHINCHÓN! Descartaste ${cartaDescartada.toString()} y cerraste.` :
+                                            `Cerraste con ${puntosSueltos} puntos después de descartar ${cartaDescartada.toString()}.`;
+            finalizarRondaYLimpiar("Jugador", esChinchon);
+        } else {
+            alert("No puedes cerrar con la carta seleccionada. Puntos restantes: " + puntosSueltos);
+        }
+    }
+
+    function finalizarRondaYLimpiar(cerrador, hizoChinchon) {
+        cartaSeleccionadaParaDescartar = null;
+        jugadorHaRobado = false; // Asegurar que se resetea para la próxima acción/turno
+        finalizarRonda(cerrador, hizoChinchon);
+    }
+
+    function cambiarTurno() {
+        if (juegoTerminado) return; // No cambiar turno si el juego ya terminó.
+        turnoJugador = !turnoJugador;
+        jugadorHaRobado = false; // MUY IMPORTANTE: resetear para el siguiente jugador/CPU
+        cartaSeleccionadaParaDescartar = null;
+        const selectedDOM = playerHandElement.querySelector('.card.selected');
+        if (selectedDOM) selectedDOM.classList.remove('selected');
+
+        if (!turnoJugador) {
+            gameMessageElement.textContent = "Turno de la CPU...";
+            actualizarUI(); // Actualiza UI ANTES de que la CPU piense
+            setTimeout(turnoCPU, 1500);
+        } else {
+            gameMessageElement.textContent = "Tu turno. Arrastra del mazo/pozo para robar.";
+            revisarMazoPozo();
+            actualizarUI();
+        }
+    }
+
+    function revisarMazoPozo() {
+        if (mazo.length === 0 && pozo.length > 1) {
+            const ultimaPozo = pozo.pop(); mazo = [...pozo]; pozo = [ultimaPozo];
+            for (let i = mazo.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [mazo[i], mazo[j]] = [mazo[j], mazo[i]]; }
+            // renderizarMazo(); // No es necesario, actualizarUI lo hará
+            gameMessageElement.textContent = "Mazo repuesto. " + (turnoJugador ? "Tu turno." : "Turno de la CPU.");
+        } else if (mazo.length === 0 && pozo.length <=1 && !juegoTerminado) { // Asegurar que no esté ya terminado
+            gameMessageElement.textContent = "¡Sin cartas para robar! Ronda en empate técnico.";
+            finalizarRonda(null, false, true);
+        }
+    }
+
+    function ordenarMano(mano) {
+        return mano.slice().sort((a, b) => {
+            if (a.palo < b.palo) return -1;
+            if (a.palo > b.palo) return 1;
+            return a.valorNum - b.valorNum;
+        });
+    }
+
+    function obtenerCombinacionesPosibles(mano) {
+        const combinaciones = [];
+        const manoCopia = mano.slice();
+
+        manoCopia.sort((a, b) => {
+            if (a.palo < b.palo) return -1;
+            if (a.palo > b.palo) return 1;
+            return a.valorNum - b.valorNum;
+        });
+
+        for (let i = 0; i < manoCopia.length; i++) {
+            let escaleraActual = [manoCopia[i]];
+            for (let j = i + 1; j < manoCopia.length; j++) {
+                if (manoCopia[j].palo === escaleraActual[0].palo &&
+                    manoCopia[j].valorNum === escaleraActual[escaleraActual.length - 1].valorNum + 1) {
+                    escaleraActual.push(manoCopia[j]);
+                } else if (manoCopia[j].palo !== escaleraActual[0].palo || manoCopia[j].valorNum > escaleraActual[escaleraActual.length - 1].valorNum + 1) {
+                     break; 
+                }
+            }
+            if (escaleraActual.length >= 3) {
+                for (let len = 3; len <= escaleraActual.length; len++) {
+                    for (let start = 0; start <= escaleraActual.length - len; start++) {
+                        combinaciones.push(escaleraActual.slice(start, start + len));
+                    }
+                }
+            }
+        }
+        
+        const cartasPorValor = {};
+        mano.forEach(carta => {
+            if (!cartasPorValor[carta.valorNum]) cartasPorValor[carta.valorNum] = [];
+            cartasPorValor[carta.valorNum].push(carta);
+        });
+
+        for (const valor in cartasPorValor) {
+            if (cartasPorValor[valor].length >= 3) {
+                combinaciones.push(cartasPorValor[valor].slice(0, 3));
+            }
+            if (cartasPorValor[valor].length === 4) {
+                combinaciones.push(cartasPorValor[valor].slice(0, 4));
+            }
+        }
+        
+        let combinacionesUnicas = [];
+        combinaciones.sort((a,b) => b.length - a.length);
+
+        for (const comb of combinaciones) {
+            let esSubconjunto = false;
+            for (const unica of combinacionesUnicas) {
+                if (comb.every(c => unica.find(u => u.id === c.id))) {
+                    esSubconjunto = true;
+                    break;
+                }
+            }
+            if (!esSubconjunto) {
+                combinacionesUnicas.push(comb);
+            }
+        }
+        return combinacionesUnicas;
+    }
+
+    function evaluarManoCompleto(mano) {
+        if (mano.length === 0) return { combinacionesElegidas: [], cartasSueltas: [], puntosSueltos: 0, esChinchon: false };
+        const chinchon = esChinChon(mano);
+        if (chinchon) {
+            return { combinacionesElegidas: [ordenarMano(mano.slice())], cartasSueltas: [], puntosSueltos: 0, esChinchon: true };
+        }
+        let mejorResultado = {
+            combinacionesElegidas: [],
+            cartasSueltas: mano.slice(),
+            puntosSueltos: mano.reduce((sum, c) => sum + c.puntos, 0),
+            esChinchon: false
+        };
+        const todasCombinaciones = obtenerCombinacionesPosibles(mano.slice());
+        
+        function encontrarMejorConfig(idxCombActual, cartasYaUsadasIds, configActual) {
+            if (idxCombActual === todasCombinaciones.length) {
+                let currentSueltas = mano.filter(c => !cartasYaUsadasIds.has(c.id));
+                let currentPuntos = currentSueltas.reduce((sum, c) => sum + c.puntos, 0);
+                if (currentPuntos < mejorResultado.puntosSueltos || (currentPuntos === mejorResultado.puntosSueltos && configActual.reduce((s, m) => s + m.length, 0) > mejorResultado.combinacionesElegidas.reduce((s, m) => s + m.length, 0))) {
+                    mejorResultado = {
+                        combinacionesElegidas: configActual.slice(),
+                        cartasSueltas: currentSueltas,
+                        puntosSueltos: currentPuntos,
+                        esChinchon: false
+                    };
+                }
+                return;
+            }
+            encontrarMejorConfig(idxCombActual + 1, new Set(cartasYaUsadasIds), configActual.slice()); // No usar la actual
+            const combIntento = todasCombinaciones[idxCombActual];
+            if (combIntento.every(c => !cartasYaUsadasIds.has(c.id))) { // Si se puede usar
+                const nuevasCartasUsadasIds = new Set(cartasYaUsadasIds);
+                combIntento.forEach(c => nuevasCartasUsadasIds.add(c.id));
+                const nuevaConfigActual = configActual.slice();
+                nuevaConfigActual.push(combIntento);
+                encontrarMejorConfig(idxCombActual + 1, nuevasCartasUsadasIds, nuevaConfigActual); // Usar la actual
+            }
+        }
+        if(todasCombinaciones.length > 0) {
+             encontrarMejorConfig(0, new Set(), []);
+        }
+        return mejorResultado;
+    }
+
+    function esChinChon(mano) {
+        if (mano.length !== 7) return false;
+        const manoOrd = ordenarMano(mano.slice());
+        const primerPalo = manoOrd[0].palo;
+        for (let i = 0; i < manoOrd.length; i++) {
+            if (manoOrd[i].palo !== primerPalo) return false;
+            if (i > 0 && manoOrd[i].valorNum !== manoOrd[i-1].valorNum + 1) return false;
+        }
+        return true;
+    }
+
+    function cpuDecideRobar(manoCpu, cartaPozo) {
+        if (!cartaPozo) return "mazo";
+        if (manoCpu.length === 6) { const tempMano = [...manoCpu, cartaPozo]; if (esChinChon(tempMano)) return "pozo"; }
+        const { puntosSueltos: actual } = evaluarManoCompleto(manoCpu);
+        let mejorConPozo = Infinity; const manoConPozo = [...manoCpu, cartaPozo];
+        if (manoConPozo.length > 7) { // Debería ser 8
+            for (let i = 0; i < manoConPozo.length; i++) {
+                const tempEval = manoConPozo.filter((_, idx) => idx !== i); // Quedan 7
+                const { puntosSueltos: tempP } = evaluarManoCompleto(tempEval);
+                if (tempP < mejorConPozo) mejorConPozo = tempP;
+            }
+        } else { const { puntosSueltos: tempP } = evaluarManoCompleto(manoConPozo); mejorConPozo = tempP; }
+        if (mejorConPozo <= MAX_PUNTOS_PARA_CERRAR && actual > MAX_PUNTOS_PARA_CERRAR) return "pozo";
+        if (mejorConPozo < actual - 3) return "pozo";
+        return "mazo";
+    }
+
+    function cpuEligeDescarte(manoCpuCon8Cartas) {
+        let cartaADescartar = null; let minPuntosSueltosPostDescarte = Infinity;
+        if (manoCpuCon8Cartas.length <= 1) return manoCpuCon8Cartas[0];
+        for (let i = 0; i < manoCpuCon8Cartas.length; i++) { // Prioridad Chinchón
+            const tempMano7 = manoCpuCon8Cartas.filter((_, idx) => idx !== i);
+            if (esChinChon(tempMano7)) return manoCpuCon8Cartas[i];
+        }
+        for (let i = 0; i < manoCpuCon8Cartas.length; i++) {
+            const potDescarte = manoCpuCon8Cartas[i];
+            const tempMano7 = manoCpuCon8Cartas.filter(c => c.id !== potDescarte.id);
+            const { puntosSueltos } = evaluarManoCompleto(tempMano7);
+            if (puntosSueltos < minPuntosSueltosPostDescarte) {
+                minPuntosSueltosPostDescarte = puntosSueltos; cartaADescartar = potDescarte;
+            } else if (puntosSueltos === minPuntosSueltosPostDescarte) {
+                if (cartaADescartar === null || potDescarte.puntos > cartaADescartar.puntos) cartaADescartar = potDescarte;
+            }
+        }
+        return cartaADescartar || manoCpuCon8Cartas[Math.floor(Math.random() * manoCpuCon8Cartas.length)];
+    }
+
+    function turnoCPU() {
+        if (juegoTerminado || turnoJugador) return; // Doble chequeo
+        gameMessageElement.textContent = "CPU está pensando...";
+        
+        // Pequeño delay para que el mensaje "CPU pensando" sea visible
+        setTimeout(() => {
+            if (juegoTerminado || turnoJugador) return; // Chequeo por si el estado cambió durante el timeout
+
+            revisarMazoPozo(); // Chequear si hay cartas
+            if (mazo.length === 0 && pozo.length <=1 && !turnoJugador && !juegoTerminado) {
+                finalizarRonda(null, false, true); // Empate técnico
+                return;
+            }
+
+            const cartaDelPozo = pozo.length > 0 ? pozo[pozo.length - 1] : null;
+            const decisionRobo = cpuDecideRobar(manoCPU, cartaDelPozo); // manoCPU tiene 7
+            let cartaRobadaCPU;
+
+            if (decisionRobo === "pozo" && cartaDelPozo && pozo.length > 0) {
+                cartaRobadaCPU = pozo.pop();
+                gameMessageElement.textContent = `CPU ha robado ${cartaRobadaCPU.toString()} del pozo.`;
+            } else {
+                if (mazo.length === 0) {
+                     if (cartaDelPozo && pozo.length > 0) { // Forzar robo del pozo si existe
+                        cartaRobadaCPU = pozo.pop();
+                        gameMessageElement.textContent = `CPU ha robado ${cartaRobadaCPU.toString()} del pozo (mazo vacío).`;
+                     } else { // No hay nada que robar
+                        if (!juegoTerminado) finalizarRonda(null, false, true); return;
+                     }
+                } else {
+                    cartaRobadaCPU = mazo.pop();
+                    gameMessageElement.textContent = "CPU ha robado del mazo.";
+                }
+            }
+            manoCPU.push(cartaRobadaCPU); // CPU ahora tiene 8
+            // actualizarUI(); // No es necesario aquí, se hará después del descarte
+
+            setTimeout(() => {
+                if (juegoTerminado || turnoJugador) return;
+
+                const cartaDescartadaCPU = cpuEligeDescarte(manoCPU); // manoCPU tiene 8
+                const index = manoCPU.findIndex(c => c.id === cartaDescartadaCPU.id);
+                if (index > -1) {
+                    manoCPU.splice(index, 1); // CPU vuelve a 7
+                    pozo.push(cartaDescartadaCPU);
+                    gameMessageElement.textContent = `CPU ha descartado ${cartaDescartadaCPU.toString()}.`;
+                } else {
+                    if (manoCPU.length > 7) { // Fallback
+                        const fallbackDescarte = manoCPU.pop();
+                        pozo.push(fallbackDescarte);
+                        gameMessageElement.textContent = `CPU ha descartado (fallback) ${fallbackDescarte.toString()}.`;
+                    } else if (manoCPU.length === 0) {
+                        console.error("Mano de CPU vacía inesperadamente antes de descarte final.");
+                        cambiarTurno(); return;
+                    }
+                }
+                
+                const { esChinchon: cpuChinchon, puntosSueltos: puntosCPUSueltos } = evaluarManoCompleto(manoCPU);
+                if (cpuChinchon) {
+                    finalizarRondaYLimpiar("CPU", true);
+                } else if (puntosCPUSueltos <= MAX_PUNTOS_PARA_CERRAR - 2 && manoCPU.length === 7) {
+                    finalizarRondaYLimpiar("CPU", false);
+                } else {
+                    cambiarTurno(); // Esto llamará a actualizarUI
+                }
+            }, 1000); // Tiempo para descarte
+        }, 500); // Tiempo para "pensar"
+    }
+
+    function finalizarRonda(cerrador, hizoChinchon, empateTecnico = false) {
+        // Deshabilitar acciones de juego
+        btnCloseRound.disabled = true;
+        // La lógica de arrastre debe prevenirse si la ronda terminó
+        // Esto se maneja con 'juegoTerminado' o !turnoJugador en los handlers de drag
+
+        let evalJugador = evaluarManoCompleto(manoJugador);
+        let evalCPU = evaluarManoCompleto(manoCPU);
+        let puntosRondaJugadorOriginal = evalJugador.puntosSueltos; // Puntos brutos
+        let puntosRondaCPUOriginal = evalCPU.puntosSueltos;       // Puntos brutos
+        let mensajeGanadorRonda = "";
+
+        let puntosSumarJugador = puntosRondaJugadorOriginal;
+        let puntosSumarCPU = puntosRondaCPUOriginal;
+
+
+        if (empateTecnico) {
+            mensajeGanadorRonda = "Ronda en empate técnico. Se suman los puntos de las manos.";
+            // Los puntos a sumar ya son los originales
+        } else if (cerrador === "Jugador") {
+            if (hizoChinchon) {
+                puntosSumarJugador = PUNTOS_CHINCHON;
+                mensajeGanadorRonda = "¡Jugador hizo ChinChón!";
+                // CPU suma sus puntos normales
+            } else {
+                puntosSumarJugador = (puntosRondaJugadorOriginal === 0) ? PUNTOS_CERRAR_CON_CERO : puntosRondaJugadorOriginal;
+                if (evalCPU.esChinchon || (puntosRondaCPUOriginal < puntosRondaJugadorOriginal)) { // Corte Fallido
+                    puntosSumarJugador = PENALIZACION_CORTE_FALLIDO;
+                    mensajeGanadorRonda = `Jugador cerró, pero CPU tenía menos puntos (${puntosRondaCPUOriginal}) o Chinchón. ¡Penalización para Jugador!`;
+                    if (evalCPU.esChinchon) puntosSumarCPU = PUNTOS_CHINCHON; // CPU también anota su chinchon
+                } else {
+                     mensajeGanadorRonda = `Jugador cerró con ${puntosRondaJugadorOriginal} puntos.`;
+                }
+            }
+        } else if (cerrador === "CPU") {
+            if (hizoChinchon) {
+                puntosSumarCPU = PUNTOS_CHINCHON;
+                mensajeGanadorRonda = "¡CPU hizo ChinChón!";
+            } else {
+                puntosSumarCPU = (puntosRondaCPUOriginal === 0) ? PUNTOS_CERRAR_CON_CERO : puntosRondaCPUOriginal;
+                if (evalJugador.esChinchon || (puntosRondaJugadorOriginal < puntosRondaCPUOriginal)) { // Corte Fallido
+                    puntosSumarCPU = PENALIZACION_CORTE_FALLIDO;
+                    mensajeGanadorRonda = `CPU cerró, pero Jugador tenía menos puntos (${puntosRondaJugadorOriginal}) o Chinchón. ¡Penalización para CPU!`;
+                     if (evalJugador.esChinchon) puntosSumarJugador = PUNTOS_CHINCHON; // Jugador también anota su chinchon
+                } else {
+                     mensajeGanadorRonda = `CPU cerró con ${puntosRondaCPUOriginal} puntos.`;
+                }
+            }
+        }
+        puntuacionJugador += puntosSumarJugador;
+        puntuacionCPU += puntosSumarCPU;
+        
+        document.getElementById('summary-player-points-round').textContent = `${puntosRondaJugadorOriginal}`;
+        mostrarCartasEnResumen('summary-player-melds', evalJugador.combinacionesElegidas, true);
+        mostrarCartasEnResumen('summary-player-unmelded', evalJugador.cartasSueltas, false);
+        document.getElementById('summary-cpu-points-round').textContent = `${puntosRondaCPUOriginal}`;
+        mostrarCartasEnResumen('summary-cpu-melds', evalCPU.combinacionesElegidas, true);
+        mostrarCartasEnResumen('summary-cpu-unmelded', evalCPU.cartasSueltas, false);
+        document.getElementById('round-winner-message').textContent = mensajeGanadorRonda;
+        
+        modalBtnNextRound.style.display = 'none'; modalBtnNewGame.style.display = 'none';
+        
+        verificarFinPartida(); // Esto setea juegoTerminado
+
+        if (juegoTerminado) {
+            modalBtnNewGame.style.display = 'inline-block';
+        } else {
+            modalBtnNextRound.style.display = 'inline-block';
+        }
+        roundSummaryModal.style.display = "flex";
+        actualizarUI(); // Reflejar puntuaciones finales y estado de botones
+    }
+    
+    function mostrarCartasEnResumen(elementId, items, esMelded) {
+        const container = document.getElementById(elementId); container.innerHTML = '';
+        if (!items || items.length === 0) { container.innerHTML = "<p style='font-style:italic;font-size:0.9em;margin:5px 0;'>Ninguna</p>"; return; }
+        if (esMelded) {
+            items.forEach(grupo => {
+                 const groupDiv = document.createElement('div');
+                 groupDiv.style.marginRight = '10px'; groupDiv.style.marginBottom = '5px';
+                 groupDiv.style.border = '1px solid #555'; groupDiv.style.padding = '3px'; groupDiv.style.borderRadius = '4px';
+                 grupo.forEach(carta => { const cardEl = carta.getHTML(); cardEl.classList.add('melded'); cardEl.onclick = null; cardEl.draggable = false; groupDiv.appendChild(cardEl); });
+                 container.appendChild(groupDiv);
+            });
+        } else {
+            items.forEach(carta => { const cardEl = carta.getHTML(); cardEl.classList.add('unmelded'); cardEl.onclick = null; cardEl.draggable = false; container.appendChild(cardEl); });
+        }
+    }
+
+    function handleNextRoundFromModal() {
+        startNewRound();
+        roundSummaryModal.style.display = "none";
+    }
+    function handleNewGameFromModal() {
+        initGame();
+        roundSummaryModal.style.display = "none";
+    }
+    
+    function verificarFinPartida() {
+        if (puntuacionJugador <= LIMITE_PUNTOS_PARTIDA || puntuacionCPU <= LIMITE_PUNTOS_PARTIDA) {
+            juegoTerminado = true; // MARCAR JUEGO TERMINADO AQUÍ
+            let mensajeFinal = "¡Fin de la Partida! ";
+            if (puntuacionJugador <= LIMITE_PUNTOS_PARTIDA && puntuacionCPU > LIMITE_PUNTOS_PARTIDA) {
+                mensajeFinal = `¡Fin de la Partida! Superaste el límite. ¡GANA LA CPU! (${puntuacionCPU} a ${puntuacionJugador})`;
+            } else if (puntuacionCPU <= LIMITE_PUNTOS_PARTIDA && puntuacionJugador > LIMITE_PUNTOS_PARTIDA) {
+                mensajeFinal = `¡Fin de la Partida! CPU superó el límite. ¡GANASTE! (${puntuacionJugador} a ${puntuacionCPU})`;
+            } else if (puntuacionCPU <= LIMITE_PUNTOS_PARTIDA && puntuacionJugador <= LIMITE_PUNTOS_PARTIDA) { // Ambos cruzaron
+                 if (puntuacionJugador > puntuacionCPU) mensajeFinal = `¡Fin de la Partida! Ambos superaron límite. ¡GANASTE! (${puntuacionJugador} a ${puntuacionCPU})`; // Gana el más cercano a 0
+                 else if (puntuacionCPU > puntuacionJugador) mensajeFinal = `¡Fin de la Partida! Ambos superaron límite. ¡GANA LA CPU! (${puntuacionCPU} a ${puntuacionJugador})`;
+                 else mensajeFinal = `¡Fin de la Partida! Ambos superaron límite. ¡EMPATE! (${puntuacionJugador} a ${puntuacionCPU})`;
+            } else { // Caso raro si el juego termina por otra razón no contemplada por puntos límite
+                 if (puntuacionJugador < puntuacionCPU) mensajeFinal += "¡GANASTE!";
+                 else if (puntuacionCPU < puntuacionJugador) mensajeFinal += "¡GANA LA CPU!";
+                 else mensajeFinal += "¡EMPATE EN LA PARTIDA!";
+            }
+            gameMessageElement.textContent = mensajeFinal;
+        } else {
+            juegoTerminado = false; // Asegurarse que está false si no se cumplen condiciones de fin
+        }
+    }
+
+    function startNewRound() {
+        // No permitir iniciar nueva ronda si el juego terminó, excepto en el primer initGame
+        if (juegoTerminado && rondaActual > 0) {
+             btnCloseRound.disabled = true; // Asegurar que botones de juego están deshabilitados
+             return;
+        }
+        rondaActual++;
+        mazo = []; pozo = []; manoJugador = []; manoCPU = [];
+        jugadorHaRobado = false; cartaSeleccionadaParaDescartar = null;
+        turnoJugador = (rondaActual % 2 === 1); // Alternar quién empieza
+        // juegoTerminado = false; // Se maneja en verificarFinPartida y initGame
+
+        crearBaraja();
+        repartirCartas();
+
+        gameMessageElement.textContent = turnoJugador ? "Tu turno. Arrastra del mazo/pozo para robar." : "Turno de la CPU...";
+        actualizarUI(); // Esto habilitará/deshabilitará botones según el estado
+
+        if (!turnoJugador && !juegoTerminado) { // Solo iniciar turno CPU si el juego no ha terminado
+            setTimeout(turnoCPU, 1500);
+        }
+    }
+
+    function initGame() {
+        puntuacionJugador = 0; puntuacionCPU = 0; rondaActual = 0;
+        juegoTerminado = false; // Reiniciar estado de fin de juego
+        
+        // Limpiar visualmente el modal
+        document.getElementById('summary-player-points-round').textContent = "0";
+        document.getElementById('summary-player-melds').innerHTML = "Ninguna";
+        document.getElementById('summary-player-unmelded').innerHTML = "Ninguna";
+        document.getElementById('summary-cpu-points-round').textContent = "0";
+        document.getElementById('summary-cpu-melds').innerHTML = "Ninguna";
+        document.getElementById('summary-cpu-unmelded').innerHTML = "Ninguna";
+        document.getElementById('round-winner-message').textContent = "";
+        
+        startNewRound(); // Esto iniciará la ronda 1 y seteará turnoJugador
+    }
+
+    window.onload = initGame;
+</script>
+</body>
+</html>lhsurnm$
